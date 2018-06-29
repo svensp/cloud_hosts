@@ -1,0 +1,589 @@
+#!/bin/bash
+
+# Exit on any exit code != 0
+set -e
+
+export DEFAULTS=${DEFAULTS:-/usr/local/etc/defaults/mysql_backup}
+if [ -f "${DEFAULTS}" ] ; then
+	. ${DEFAULTS}
+fi
+
+LOG=${LOG:-0}
+PREFIX=${PREFIX:-/usr/local/lib/mysql_backup}
+PLUGIN=${PLUGIN:-directory}
+
+LOG_ERROR=1
+LOG_WARNING=2
+LOG_INFO=3
+LOG_DEBUG=4
+log() {
+	LEVEL="${1}"
+
+	case $LEVEL in
+		$LOG_ERROR)
+			LEVELNAME="ERROR"
+			;;
+		$LOG_WARNING)
+			LEVELNAME="WARNING"
+			;;
+		$LOG_INFO)
+			LEVELNAME="INFO"
+			;;
+		$LOG_DEBUG)
+			LEVELNAME="DEBUG"
+			;;
+		*)
+			LEVELNAME="UNKOWN"
+			;;
+	esac
+
+	shift
+	if [ "${LEVEL}" -le "${LOG}" ] ; then
+		echo "$LEVELNAME: $@"
+	fi
+}
+
+if [ -f "./fs.${PLUGIN}.sh" ] ; then
+	log ${LOG_INFO} Loading filesystem plugin "./fs.${PLUGIN}.sh"»
+	. "./fs.${PLUGIN}.sh"
+elif [ -f "${PREFIX}/fs.${PLUGIN}.sh" ] ; then
+	log ${LOG_INFO} Loading filesystem plugin "${PREFIX}/fs.${PLUGIN}.sh"»
+	. "${PREFIX}/fs.${PLUGIN}.sh"
+else
+	log ${LOG_ERROR} "Filesystem plugin '${PLUGIN}' was not found"
+	exit 1
+fi
+
+DATADIR=${DATADIR:-/var/mysql}
+HISTORY_FILE=${HISTORY_FILE:-backup_history.txt}
+DATABASE_CONNECT="${DATABASE_CONNECT:--socket=/var/run/mysqld/mysqld.sock}"
+DATABASE_USER=${DATABASE_USER:-}
+DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
+
+help() {
+	echo "$0 MODE [BASE_IDENTIFIER] IDENTIFIER"
+	echo 
+	echo "MODE: "
+	echo "     - FULL Create a full backup"
+	echo "     - INCREMENTAL Create an incremental backup based on an already"
+	echo "                   existing backup"
+	echo "     - RESTORE Restore a backup"
+	echo "     - REBUILD Rebuild the ${HISTORY_FILE} of the given incremental"
+	echo "               backup by searching the innodb_from_lsn in the other"
+	echo "               backups innodb_to_lsn"
+	echo "     - LIST list all known backup identifiers"
+	echo "     - IS_FULL Returns 0 if the given identifier is a full backup"
+	echo "       also logs a message at level 4(info) if DEBUG is set to 4 or higher."
+	echo "     - DELETE delete a backup and all backups which depend on it."
+	echo "     -        This is an expensive operation if your filesystem lib is slow"
+	echo "     -        because ${HISTORY_FILE} from all backups have to be parsed"
+	echo
+	echo "IDENTIFIER:"
+	echo "     Backup to restore"
+	echo "     Defaults to the current date in the format Y-m-d_H-i for FULL and"
+	echo "     INCREMENTAL MODES"
+	echo
+	echo "BASE_IDENTIFIER:"
+	echo "     Required by the INCREMENTAL MODE."
+	echo "     The identifier of the backup to base this backup on."
+}
+
+WORKDIR=""
+clean_workdir() {
+	if [ ! -z "${WORKDIR}" ] && [ -d "${WORKDIR}" ] ; then
+		rm -Rf "${WORKDIR}"
+	fi
+}
+trap clean_workdir EXIT 
+
+workdir() {
+	if [ -z "${WORKDIR}" ] ; then
+		WORKDIR=$(mktemp -d)
+	fi
+}
+
+full_backup() {
+	local IDENTIFIER="${1}"
+
+	workdir
+	local BACKUPDIR="${WORKDIR}"
+
+	xtrabackup --backup \
+		--data-dir="${DATADIR}" \
+		--target-dir="${BACKUPDIR}" \
+		${DATABASE_CONNECT} \
+		--user="${DATABASE_USER}" \
+		--password="${DATABASE_PASSWORD}"
+
+	fs_upload "${BACKUPDIR}" "${IDENTIFIER}"
+}
+
+#
+# incremental_backup
+#
+# Create and upload an incremental backup which starts where the backup BASE ends.
+# In addition to creating the incremental backup with xtrabackup the backup
+# history is written by taking the history file of the base backup(empty, if
+# it is a full backup) and adding the BASE as new line to its end.
+#
+# Parameters
+#   BASE - Backup to validate
+#   IDENTIFIER - Backup to validate
+#
+incremental_backup() {
+	local BASE_IDENTIFIER="${1}"
+	local IDENTIFIER="${2}"
+
+	workdir
+	local BACKUPDIR="${WORKDIR}"
+
+	local LSN=$(fs_cat "${BASE_IDENTIFIER}" "xtrabackup_info" \
+		| grep innodb_to_lsn \
+		| sed 's/^.*=//')
+
+	if [ -z "${LSN}" ] ; then
+		echo "Base LSN not found!"
+		echo "Aborting"
+		exit 1
+	fi
+
+	log "${LOG_INFO}" "Creating incremental backup ${IDENTIFIER}"
+	xtrabackup --backup \
+		--incremental-lsn="${LSN}" \
+		--data-dir="${DATADIR}" \
+		--target-dir="${BACKUPDIR}" \
+		${DATABASE_CONNECT} \
+		--user="${DATABASE_USER}" \
+		--password="${DATABASE_PASSWORD}"
+	log "${LOG_INFO}" "Created incremental backup ${IDENTIFIER}"
+
+	if [ ! -z "$(fs_cat "${BASE_IDENTIFIER}" "${HISTORY_FILE}")" ] ; then
+		fs_cat "${BASE_IDENTIFIER}" "${HISTORY_FILE}" > "${BACKUPDIR}/${HISTORY_FILE}"
+		echo "${BASE_IDENTIFIER}" >> "${BACKUPDIR}/${HISTORY_FILE}"
+	else
+		echo "${BASE_IDENTIFIER}" > "${BACKUPDIR}/${HISTORY_FILE}"
+	fi
+
+	log "${LOG_INFO}" Uploading incremental backup ${IDENTIFIER}
+	fs_upload "${BACKUPDIR}" "${IDENTIFIER}"
+	log "${LOG_INFO}" Uploaded incremental backup ${IDENTIFIER}
+}
+
+
+#
+# restore_backup
+#
+# Restore the given backup
+#
+# Parameters
+#   IDENTIFIER - Backup to validate
+#   TARGET_DIRECTORY - Directory where the restored backup is placed
+#
+restore_backup() {
+
+	local IDENTIFIER="${1}"
+
+	local TARGET_DIRECTORY="${2}"
+
+	local HISTORY_FILE_CONTENT="$(fs_cat "${IDENTIFIER}" "${HISTORY_FILE}")"
+
+	if [ -z "${HISTORY_FILE_CONTENT}" ] ; then
+		log "${LOG_DEBUG}" "Restoring as full backup"
+		restore_full "${IDENTIFIER}" "${TARGET_DIRECTORY}"
+	fi
+
+	log "${LOG_DEBUG}" "Restoring as incremental backup"
+	restore_incremental "${IDENTIFIER}" "${TARGET_DIRECTORY}"
+}
+
+restore_full() {
+
+	local IDENTIFIER="${1}"
+
+	local TARGET_DIRECTORY="${2}"
+
+	workdir
+	local BACKUPDIR="${WORKDIR}"
+	fs_download "${IDENTIFIER}" "${BACKUPDIR}"
+
+	xtrabackup --prepare --target-dir="${BACKUPDIR}"
+
+	if [ ! -z "$(ls -A "${TARGET_DIRECTORY}")" ] ; then
+		log "${LOG_ERROR}" "Directory ${TARGET_DIRECTORY} not empty. aborting"
+		exit 1
+	fi
+
+	cp -R "${BACKUPDIR}/." "${TARGET_DIRECTORY}"
+	log "${LOG_INFO}" "Copied restored backup into directory ${TARGET_DIRECTORY}"
+
+	exit 0
+}
+
+restore_incremental() {
+
+	local IDENTIFIER="${1}"
+
+	local TARGET_DIRECTORY="${2}"
+
+	workdir
+	local BACKUPDIR="${WORKDIR}"
+	mkdir "${BACKUPDIR}/${IDENTIFIER}"
+	log "${LOG_DEBUG}" "Downloading requested backup ${IDENTIFIER}"
+	fs_download "${IDENTIFIER}" "${BACKUPDIR}/${IDENTIFIER}"
+
+	log "${LOG_DEBUG}" "Reading history from ${BACKUPDIR}/${IDENTIFIER}/${HISTORY_FILE}"
+	declare -a INCREMENTAL_IDENTIFIERS=( $(cat "${BACKUPDIR}/${IDENTIFIER}/${HISTORY_FILE}") )
+	if [ -z "${INCREMENTAL_IDENTIFIERS[@]}" ] ; then
+		log "${LOG_ERROR}" History file found but has no content.
+		exit 1
+	fi
+
+	IFS='
+'
+
+	#
+	# Download and prepare the first entry as the full-backup base
+	#
+	log "${LOG_DEBUG}" "Downloading full backup ${INCREMENTAL_IDENTIFIERS[0]}"
+	mkdir "${BACKUPDIR}/base"
+	fs_download "${INCREMENTAL_IDENTIFIERS[0]}" "${BACKUPDIR}/base"
+	xtrabackup --prepare --apply-log-only --target-dir="${BACKUPDIR}/base"
+
+	#
+	# Download and prepare all incremental backups in the history file
+	#
+	for INCREMENTAL_IDENTIFIER in ${INCREMENTAL_IDENTIFIERS[@]:1} ; do
+		log "${LOG_DEBUG}" "Downloading incremental backup ${INCREMENTAL_IDENTIFIER}"
+		local INCREMENTAL_DIR="${BACKUPDIR}/${INCREMENTAL_IDENTIFIER}"
+		mkdir "${INCREMENTAL_DIR}"
+		fs_download "${INCREMENTAL_IDENTIFIER}" "${INCREMENTAL_DIR}"
+		xtrabackup --prepare --apply-log-only \
+		--target-dir="${BACKUPDIR}/base" \
+			--incremental-dir="${INCREMENTAL_DIR}"
+	done
+
+	#
+	# Prepare the actual backup without --apply-log-only so the rollback phase
+	# for transactions is done and the backup completly prepared.
+	#
+	log "${LOG_DEBUG}" "Preparing requested backup ${IDENTIFIER}"
+	xtrabackup --prepare --target-dir="${BACKUPDIR}/base" \
+		--incremental-dir="${BACKUPDIR}/${IDENTIFIER}"
+
+	if [ ! -z "$(ls -A "${TARGET_DIRECTORY}")" ] ; then
+		log "${LOG_ERROR}" "Directory ${TARGET_DIRECTORY} not empty. aborting"
+		exit 1
+	fi
+
+	cp -R "${BACKUPDIR}/base/." "${TARGET_DIRECTORY}"
+	log "${LOG_INFO}" "Copied restored backup into directory ${TARGET_DIRECTORY}"
+	exit 0
+}
+
+#
+# validate_full
+#
+# Validate that the given backup starts at lsn 0 and is thus a full backup
+#
+# Parameters
+#   IDENTIFIER - Backup to validate
+#
+validate_full() {
+
+	local IDENTIFIER="${1}"
+	local XTRABACKUP_INFO=$(fs_cat "${IDENTIFIER}" "xtrabackup_info")
+
+	local START_LSN=$(grep innodb_from_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+	local END_LSN=$(grep innodb_to_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+
+	if [ "${START_LSN}" -ne "0" ] ; then
+		log ${LOG_ERROR} ERROR Backup ${IDENTIFIER} is not a full backup
+		exit 1
+	fi
+
+	log ${LOG_INFO} Backup ${IDENTIFIER} is a valid full backup
+	exit 0
+}
+
+
+#
+# validate_incremental 
+#
+# Validate that following a given incremental backups history starts at lsn 0
+# and arrives at the backups lsn, with each backups from_lsn matching the
+# previous to_lsn
+#
+# Parameters
+#   IDENTIFIER - Backup to validate
+#
+validate_incremental() {
+
+	local IDENTIFIER="${1}"
+
+	local PREVIOUS_IDENTIFIER="START"
+	local PREVIOUS_END_LSN="0"
+
+	IFS='
+'
+	local IDENTIFIERS="$(fs_cat "${IDENTIFIER}" "${HISTORY_FILE}")"
+	for CHECK_IDENTIFIER in ${IDENTIFIERS[@]} ${IDENTIFIER}; do
+
+		local XTRABACKUP_INFO=$(fs_cat "${CHECK_IDENTIFIER}" "xtrabackup_info")
+		local START_LSN=$(grep innodb_from_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+		local END_LSN=$(grep innodb_to_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+
+		if [ "${START_LSN}" -ne "${PREVIOUS_END_LSN}" ] ; then
+			log "${LOG_ERROR}" "Validation failed! Start lsn of ${CHECK_IDENTIFIER} \
+				does not match end lsn of ${PREVIOUS_IDENTIFIER}"	
+			exit 1
+		fi
+
+		local PREVIOUS_END_LSN="${END_LSN}"
+		local PREVIOUS_IDENTIFIER="${CHECK_IDENTIFIER}"
+	done
+
+	log "${LOG_INFO}" "Validation success!"
+
+	exit 0
+}
+
+#
+# validate_backup
+#
+# Validate the given backup.
+# If a history file is found the backup is validated as incremental backup
+# @see validate_incremental
+# If no history file is foud the backup is validated as full backup
+# @see validate_full
+#
+validate_backup() {
+	local IDENTIFIER="${1}"
+
+	local HISTORY_FILE_CONTENT="$(fs_cat ${IDENTIFIER} ${HISTORY_FILE})"
+
+	if [ -z "${HISTORY_FILE_CONTENT}" ] ; then
+		log "${LOG_INFO}" "No history file found. Validating as full backup."
+		validate_full "${IDENTIFIER}"
+	fi
+
+		log "${LOG_INFO}" "History file found. Validating as incremental backup."
+	validate_incremental "${IDENTIFIER}"
+}
+
+#
+# rebuild
+#
+# Rebuild the HISTORY_FILE of the given backup.
+# Retrieves the FROM_LSN of the backup then searches all other backups for a
+# matching TO_LSN
+#
+rebuild() {
+
+	local IDENTIFIER="${1}"
+	local XTRABACKUP_INFO="$(fs_cat "${IDENTIFIER}" "xtrabackup_info")"
+
+	if [ -z "{$XTRABACKUP_INFO}" ] ; then
+		log "${LOG_ERROR}" Backup ${IDENTIFIER} was not found. Aborting.
+		exit 1
+	fi
+
+	local REBUILD_START_LSN=$(grep innodb_from_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+	if [ "${REBUILD_START_LSN}" -eq "0" ] ; then
+		log "${LOG_WARNING}" "Backup ${IDENTIFIER} starts with LSN 0 and is thus a full backup - no rebuild steps taken"
+		exit 0
+	fi
+
+	IFS='
+'
+	for CHECK_IDENTIFIER in $(fs_list) ; do
+
+		if [ "$CHECK_IDENTIFIER" != "${IDENTIFIER}" ] ; then
+			local XTRABACKUP_INFO=$(fs_cat "${CHECK_IDENTIFIER}" "xtrabackup_info")
+			local CHECK_END_LSN=$(grep innodb_to_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+			local CHECK_FROM_LSN=$(grep innodb_from_lsn <<< "${XTRABACKUP_INFO}" | sed -e 's/^.*=//')
+
+			if [ "${CHECK_END_LSN}" = "${REBUILD_START_LSN}" ] ; then
+				local HISTORY_FILE_CONTENT="$(fs_cat "${CHECK_IDENTIFIER}" "${HISTORY_FILE}")"
+
+				if [ "${CHECK_FROM_LSN}" -ne "0" ] && [ -z "${HISTORY_FILE_CONTENT}" ]  ; then
+					if ! bash ${0} REBUILD "${CHECK_IDENTIFIER}" ; then
+						log "${LOG_ERROR}" Rebuilding found previous backup "${CHECK_IDENTIFIER} failed" 
+						exit 1
+					fi
+
+					local HISTORY_FILE_CONTENT="$(fs_cat "${CHECK_IDENTIFIER}" "${HISTORY_FILE}")"
+				fi
+
+
+				workdir
+				local BACKUP="${WORKDIR}"
+				fs_download "${IDENTIFIER}" "${BACKUP}"
+				fs_cat "${CHECK_IDENTIFIER}" "${HISTORY_FILE}" > "${BACKUP}/${HISTORY_FILE}"
+
+				# If history_file.txt is empty then > is necessary, otherwise an
+				# empty newline is added to the top of the file
+				if [ -z "$(cat ${BACKUP}/${HISTORY_FILE})" ] ; then
+					echo "${CHECK_IDENTIFIER}" > "${BACKUP}/${HISTORY_FILE}"
+				else
+					echo "${CHECK_IDENTIFIER}" >> "${BACKUP}/${HISTORY_FILE}"
+				fi
+				fs_upload "${BACKUP}" "${IDENTIFIER}" 
+				log "${LOG_INFO}" Backup with END_LSN ${REBUILD_START_LSN} found: ${CHECK_IDENTIFIER}
+				exit 0
+
+			fi
+		fi
+
+	done
+
+	log "${LOG_ERROR}" Backup with END_LSN ${REBUILD_START_LSN} not found
+	exit 1
+
+}
+
+is_full() {
+	local IDENTIFIER="${1}"
+
+	if [ -z $(fs_cat "$IDENTIFIER" "${HISTORY_FILE}") ] ; then
+		log "${LOG_INFO}" "History file ${HISTORY_FILE}" of "${IDENTIFIER} does not exist or empty - full backup"
+		exit 0
+	fi
+	log "${LOG_INFO}" "History file ${HISTORY_FILE}" of "${IDENTIFIER} exists with content - incremental backup"
+
+	exit 1
+}
+
+delete() {
+
+	local IDENTIFIER="${1}"
+
+	IFS='
+'
+
+	declare -a IDENTIFIERS_TO_BE_DELETED
+	for CHECK_IDENTIFIER in $(fs_list) ; do
+
+		if [ "${CHECK_IDENTIFIER}" != "${IDENTIFIER}" ] ; then
+
+			if fs_cat "${CHECK_IDENTIFIER}" "${HISTORY_FILE}" | grep -E -q "^${IDENTIFIER}$" ; then
+				log "${LOG_DEBUG}" "Adding ${CHECK_IDENTIFIER} to backups to be deleted"
+				IDENTIFIERS_TO_BE_DELETED+=" ${CHECK_IDENTIFIER}"
+			else
+				log "${LOG_DEBUG}" "Not based on this backup: ${CHECK_IDENTIFIER}"
+			fi
+
+		else
+			log "${LOG_DEBUG}" "Skipping ${CHECK_IDENTIFIER} because it is the backup to be deleted"
+		fi
+
+	done
+
+	IFS=' '
+	for DELETE_IDENTIFIER in ${IDENTIFIERS_TO_BE_DELETED[@]} ${IDENTIFIER} ; do
+		log "${LOG_INFO}" "Deleting ${DELETE_IDENTIFIER}."
+		fs_delete "${DELETE_IDENTIFIER}"
+	done
+
+	exit 0
+}
+
+MODE="${1}"
+if [ -z "${1}" ] ; then
+	help
+	exit
+fi
+
+shift
+
+case ${MODE} in
+	FULL)
+		IDENTIFIER=${1}
+
+		if [ -z "${IDENTIFIER}" ] ; then
+			IDENTIFIER="$(date '+%Y-%m-%d_%H-%M')"
+		else
+			shift
+		fi
+
+		full_backup "${IDENTIFIER}"
+		;;
+	INCREMENTAL)
+		BASE_IDENTIFIER=${1}
+		IDENTIFIER=${2}
+
+		if [ -z "${IDENTIFIER}" ] ; then
+			IDENTIFIER="$(date '+%Y-%m-%d_%H-%M')"
+			shift 1
+		else
+			shift 2
+		fi
+
+		incremental_backup "${BASE_IDENTIFIER}" "${IDENTIFIER}"
+		;;
+	RESTORE)
+		IDENTIFIER="${1}"
+		if [ -z "${IDENTIFIER}" ] ; then
+			help
+			log "${LOG_ERROR}" "Identifier parameter is required for MODE RESTORE"
+			exit 1
+		fi
+		shift
+
+		TARGET_DIRECTORY="${1}"
+		if [ -z "${TARGET_DIRECTORY}" ] ; then
+			log "${LOG_WARNING}" "No restore target given. Falling back to ${DATADIR}"
+			TARGET_DIRECTORY="${DATADIR}"
+		fi
+
+		restore_backup "${IDENTIFIER}" "${TARGET_DIRECTORY}"
+		;;
+	VALIDATE)
+		IDENTIFIER=${1}
+		if [ -z "${IDENTIFIER}" ] ; then
+			help
+			log ${LOG_ERROR} "Identifier parameter is required for restore"
+			exit 1
+		fi
+		shift
+		validate_backup ${IDENTIFIER}
+		;;
+	REBUILD)
+		IDENTIFIER=${1}
+		if [ -z "${IDENTIFIER}" ] ; then
+			help
+			log ${LOG_ERROR} "Identifier parameter is required for rebuild"
+			exit 1
+		fi
+
+		rebuild "${IDENTIFIER}"
+		;;
+	LIST)
+		fs_list
+		exit 0
+		;;
+	IS_FULL)
+		IDENTIFIER=${1}
+		if [ -z "${IDENTIFIER}" ] ; then
+			help
+			log ${LOG_ERROR} "Identifier parameter is required for restore"
+			exit 1
+		fi
+
+		is_full "${IDENTIFIER}"
+		;;
+	DELETE)
+		IDENTIFIER=${1}
+		if [ -z "${IDENTIFIER}" ] ; then
+			help
+			log ${LOG_ERROR} "Identifier parameter is required for delete"
+			exit 1
+		fi
+
+		delete "${IDENTIFIER}"
+		;;
+	*)
+		help
+
+		echo "${MODE} unkown"
+		;;
+esac

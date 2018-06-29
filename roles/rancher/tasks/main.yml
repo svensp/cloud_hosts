@@ -1,0 +1,80 @@
+---
+- name: Install docker-py
+  apt:
+    name: python-docker
+    state: present
+  tags: ['rancher']
+- name: Create rancher network (used between rancher and traefik)
+  docker_network:
+    name: rancher
+    state: present
+  tags: ['rancher']
+- name: Create container
+  docker_container:
+    name: rancher-server
+    image: "{{ image }}:{{ version }}"
+    restart_policy: unless-stopped
+    networks:
+      - name: rancher
+    published_ports:
+      - "{{ ansible_default_ipv4.address }}:9345:9345"
+      - "{{ ansible_default_ipv4.address }}:8080:8080"
+    command:
+      - "--advertise-address"
+      - "{{ ansible_default_ipv4.address }}"
+      - "--db-name"
+      - "{{ db_name }}"
+      - "--db-host"
+      - "{{ db_host }}"
+      - "--db-user"
+      - "{{ db_username }}"
+      - "--db-pass"
+      - "{{ db_password }}"
+  tags: ['rancher']
+- name: Create traefik directory
+  file:
+    path: /etc/traefik
+    state: directory
+  tags: ['rancher']
+- name: Copy traefik.toml
+  template:
+    src: traefik.toml
+    dest: /etc/traefik/traefik.toml
+  tags: ['rancher']
+- name: Create treafik pcs_resource to start the container
+  pcs_resource:
+    name: rancher-traefik
+    state: present
+    resource_type: "ocf:heartbeat:docker"
+    options: "name=rancher-traefik image=traefik:1.6.3 allow_pull=true run_opts='-v /etc/traefik:/etc/traefik -p {{ rancher_ip }}:80:80 -p {{ rancher_ip }}:443:443 --network=rancher --restart=no' meta resource-stickyness=100 failure-timeout=60"
+  run_once: true
+  tags: ['rancher', 'pcs_resource']
+- name: Create treafik cluster constraint colocation
+  pcs_constraint_colocation:
+    resource1: "rancher-traefik"
+    resource2: "{{ ip_resource }}"
+  when: "'ip_resource' in vars"
+  run_once: true
+  tags: ['rancher']
+- name: Create treafik cluster constraint order
+  pcs_constraint_order:
+    resource1: "{{ ip_resource }}"
+    resource2: "rancher-traefik"
+  when: "'ip_resource' in vars"
+  run_once: true
+  tags: ['rancher']
+- name: Allow rancher UI port from rancher hosts
+  ufw:
+    rule: allow
+    proto: any
+    port: 8080
+    from_ip: "{{ hostvars[item].ansible_default_ipv4.address }}"
+  when: ( hostvars[item].ansible_default_ipv4 is defined ) and ( hostvars[item].ansible_default_ipv4.address is defined )
+  with_items: "{{ groups[group] }}"
+  tags: ['rancher', 'ufw']
+- name: Reject Rancher UI port from everywhere
+  ufw:
+    rule: reject
+    proto: any
+    port: 8080
+  tags: ['rancher', 'ufw']

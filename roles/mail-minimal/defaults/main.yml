@@ -1,0 +1,2 @@
+smtp_server: "smtp.gmail.com:587"
+smtp_domain: gmail.com

@@ -1,0 +1,39 @@
+---
+- name: Packages
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - apt-transport-https
+    - ca-certificates
+    - curl
+    - gnupg2
+    - software-properties-common
+  tags: ['docker', 'apt']
+- name: Create /etc/docker/
+  file:
+    path: /etc/docker
+    state: directory
+    mode: 0700
+  tags: ['docker', 'config']
+- name: Install docker daemon.json
+  copy:
+    src: daemon.json
+    dest: /etc/docker/daemon.json
+  notify:
+    - Reload docker
+  tags: ['docker', 'config']
+- name: add docker repository keys
+  apt_key:
+    url: "https://download.docker.com/linux/debian/gpg"
+  tags: ['docker', 'apt-key']
+- name: add docker repository
+  apt_repository:
+    repo: "deb [arch=amd64] https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable"
+    state: present
+  tags: ['docker', 'apt-repository']
+- name: install docker
+  apt:
+    name: docker-ce={{ docker_version }}.*
+    state: present
+  tags: ['docker']

@@ -1,0 +1,8 @@
+KEEP_BACKUPS_FOR="{{ keep_backups_for }}"
+KEYFILE=${KEYFILE:-'{{ keyfile }}'}
+BORG_PASSPHRASE=${BORG_PASSPHRASE:-'{{ borg_passphrase }}'}
+COMPRESSION=${COMPRESSION:-'zlib,9'}
+REPOSITORIES='{% for item in repositories %}{% if not loop.first %}{{ '
+' }}{% endif %}{{ item }}{% endfor %}'
+TARGETS='{% for item in targets %}{% if not loop.first %}{{ '
+' }}{% endif %}{{ item }}{% endfor %}'

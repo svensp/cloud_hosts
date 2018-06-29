@@ -1,0 +1,19 @@
+{% for item in exports %}
+{{ item.path }} {% for host in groups[item.host_group] %} {{ host }}(
+		{%- for option in item.options -%}
+			{{ option }}
+			{%- if loop.last != True -%}
+				,
+			{%- endif -%}
+		{%- endfor -%}
+)
+	{%- endfor -%} {% for host in item.extra_hosts %} {{ host }}(
+		{%- for option in item.options -%}
+			{{ option }}
+			{%- if loop.last != True -%}
+				,
+			{%- endif -%}
+		{%- endfor -%}
+)
+	{%- endfor -%}
+{%- endfor %}

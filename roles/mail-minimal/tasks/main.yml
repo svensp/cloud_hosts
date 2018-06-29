@@ -1,0 +1,18 @@
+---
+- name: Create ssmtp config directory
+  file:
+    path: /etc/ssmtp
+    state: directory
+    mode: 0700
+  tags: [ 'email' ]
+- name: Copy ssmtp config file
+  template:
+    src: ssmtp.conf
+    dest: /etc/ssmtp/ssmtp.conf
+    mode: 0600
+  tags: [ 'email' ]
+- name: install ssmtp
+  apt:
+    name: ssmtp
+    state: present
+  tags: [ 'email' ]

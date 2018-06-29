@@ -1,0 +1,74 @@
+---
+- name: Upload xtradebug package
+  copy:
+    src: xtrabackup.stretch_amd64.deb
+    dest: /tmp/xtrabackup.deb
+  tags: ['mysql','mysql-backup']
+- name: install xtrabackup
+  apt:
+    deb: /tmp/xtrabackup.deb
+    state: present
+  tags: ['mysql','mysql-backup']
+- name: install lftp
+  apt:
+    name: lftp
+    state: present
+  tags: ['mysql','mysql-backup']
+- name: copy mysql_backup
+  copy:
+    src: mysql_backup
+    dest: /usr/local/sbin
+    mode: 0755
+  tags: ['mysql','mysql-backup']
+- name: copy mysql_backup_cron
+  copy:
+    src: mysql_backup_cron
+    dest: /usr/local/sbin
+    mode: 0755
+  tags: ['mysql','mysql-backup']
+- name: create /usr/local/etc/defaults/
+  file:
+    path: /usr/local/etc/defaults/
+    state: directory
+    mode: 0755
+  tags: ['mysql','mysql-backup']
+- name: Copy defaults template
+  template:
+    src: defaults
+    dest: /usr/local/etc/defaults/mysql_backup
+    mode: 0600
+  tags: ['mysql','mysql-backup']
+- name: create /usr/local/lib/mysql_backup
+  file:
+    path: /usr/local/lib/mysql_backup
+    state: directory
+    mode: 0755
+  tags: ['mysql','mysql-backup']
+- name: Copy filesystem plugins
+  copy:
+    src: "{{ item }}"
+    dest: /usr/local/lib/mysql_backup/
+    mode: 0644
+  tags: ['mysql','mysql-backup']
+  with_items:
+  - fs.scp.sh
+  - fs.directory.sh
+- name: Copy crontab
+  template:
+    src: "crontab"
+    dest: /usr/local/lib/mysql_backup/
+    mode: 0644
+  tags: ['mysql','mysql-backup']
+- name: Link crontab to /etc/cron.d/mysql_backup
+  file:
+    path: /etc/cron.d/mysql_backup
+    src: /usr/local/lib/mysql_backup/crontab
+    state: link
+  tags: ['mysql','mysql-backup']
+  when: link_crontab
+- name: Copy key file
+  copy:
+    src: mysql_backup/key
+    dest: /usr/local/lib/mysql_backup/key
+    mode: 0600
+  tags: ['mysql','mysql-backup']

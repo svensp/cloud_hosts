@@ -1,0 +1,94 @@
+---
+- name: Install python mysql module
+  apt:
+    name: python-mysqldb
+    state: present
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'apt']
+- name: Disable mariadb service 'mariadb' in systemd
+  systemd:
+    name: mariadb
+    enabled: false
+  register: mariadb_service
+  tags: ['mariadb', 'cluster', 'mariadb_cluster']
+- name: Disable mariadb service 'mysql' in systemd
+  systemd:
+    name: mysql
+    enabled: false
+  register: mysql_service
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'systemd-disable', 'systemd']
+- name: Stop mariadb service 'mysql' if one of the services was disabled
+  systemd:
+    name: mysql
+    state: stopped
+  when: mysql_service.changed or mariadb_service.changed
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'systemd-disable', 'systemd']
+- name: Stop mariadb service 'mariadb' if one of the services was disabled
+  systemd:
+    name: mariadb
+    state: stopped
+  when: mysql_service.changed or mariadb_service.changed
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'systemd-stop', 'systemd']
+- name: Check target mounted
+  shell: "mount | grep -q {{ data_dir }}"
+  when: mounted
+  changed_when: no
+  ignore_errors: true
+  register: datadir_mounted
+- name: Check data_dir empty
+  find:
+    paths: "{{ data_dir }}"
+    file_type: file
+  register: db_files
+  when: mounted and ( datadir_mounted.rc == 0 )
+- name: 
+  command: mysql_install_db --skip-auth-anonymous-user
+  args:
+    chdir: "{{ data_dir }}"
+  when: mounted and ( datadir_mounted.rc == 0 ) and (db_files.matched|int == 0)
+- name: Create mysql cluster resource
+  pcs_resource:
+    name: mysql-server
+    state: present
+    resource_type: "ocf:heartbeat:mysql"
+    options: "datadir=/mnt/mysql meta failure-timeout=60"
+  run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
+- name: Create mysql cluster colocation constraint
+  pcs_constraint_colocation:
+    resource1: mysql-server
+    resource2: mysql_mount
+  run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-constraint', 'pcs-colocation']
+- name: Create mysql cluster order constraint
+  pcs_constraint_order:
+    resource1: mysql_mount
+    resource2: mysql-server
+  run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-constraint', 'pcs-order']
+- name: Check if mysql is running
+  command: pgrep mysqld
+  register: mysqld_running
+  changed_when: no
+  ignore_errors: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster']
+- name: Create mysql databases
+  mysql_db:
+    login_unix_socket: '/var/lib/mysqld/mysqld.sock'
+    encoding: utf8
+    name: "{{ item.name }}"
+    state: present
+  when: mysqld_running.rc == 0
+  with_items: "{{ databases }}"
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'database']
+- name: Create mysql users
+  mysql_user:
+    check_implicit_admin: true
+    login_unix_socket: '/var/lib/mysqld/mysqld.sock'
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    host: '{{ item.host }}'
+    state: present
+    priv: "{% for table in item.privileges %}{{ table.table }}:{% for privilege in table.privileges %}{{ privilege }}{% if loop.last != True %},{% endif %}{% endfor %}{% if loop.last != True %}/{% endif %}{% endfor %}"
+  with_items: "{{ users }}"
+  when: "mysqld_running.rc == 0"
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'user']

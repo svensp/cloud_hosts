@@ -1,0 +1,50 @@
+- name: Install ufw
+  apt:
+    name: ufw
+    state: present
+  environment:
+    RUNLEVEL: 1
+  tags: ['ufw']
+- name: Allow all traffic by default
+  ufw:
+    policy: allow
+  tags: ['ufw']
+- name: Deny traffic to port 111
+  ufw:
+    rule: reject
+    proto: any
+    port: 111
+  tags: ['ufw']
+- name: Allow traffic to port 111 from our hosts
+  ufw:
+    rule: allow
+    proto: any
+    port: 111
+    from_ip: "{{ hostvars[item].ansible_default_ipv4.address }}"
+    comment: "{{ hostvars[item].ansible_hostname }} (v4)"
+  when: ( hostvars[item].ansible_default_ipv4 is defined ) and ( hostvars[item].ansible_default_ipv4.address is defined )
+  with_items: "{{ groups['all'] }}"
+  tags: ['ufw']
+- name: Allow traffic to port 111 from our hosts ipv6
+  ufw:
+    rule: allow
+    proto: any
+    port: 111
+    from_ip: "{{ hostvars[item].ansible_default_ipv6.address }}"
+    comment: "{{ hostvars[item].ansible_hostname  }} (v6)"
+  when: ( hostvars[item].ansible_default_ipv6 is defined ) and ( hostvars[item].ansible_default_ipv6.address is defined )
+  with_items: "{{ groups['all'] }}"
+  tags: ['ufw']
+- name: Allow traffic to port 111 from extra ips
+  ufw:
+    rule: allow
+    port: 111
+    proto: any
+    from_ip: "{{ item }}"
+  when: extra_ips is defined
+  with_items: "{{ extra_ips }}"
+  tags: ['ufw']
+- name: Enable ufw
+  ufw:
+    state: enabled
+  tags: ['ufw']

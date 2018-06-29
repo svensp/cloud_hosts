@@ -1,0 +1,3 @@
+ufw_user: ufwmanager
+ufw_ssh_public_key: files/ufw-user/id_rsa.pub
+ufw_ssh_private_key: files/ufw-user/id_rsa

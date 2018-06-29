@@ -1,0 +1,14 @@
+#!/bin/sh
+IFS='
+'
+for USER in $(find users/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n') ; do
+	ROLES_FILE="users/${USER}/groups.txt"
+
+	if [ -f "${ROLES_FILE}" ] ; then
+		IFS='
+'
+		while read -r line || [ -n "$line" ] ; do
+			echo "${USER} ${line}"
+		done < "${ROLES_FILE}"
+	fi
+done

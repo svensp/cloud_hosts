@@ -1,0 +1,21 @@
+---
+- name: Install Hetzner Cloud STONITH resource
+  copy: 
+    src: hetzner_cloud
+    dest: /usr/lib/stonith/plugins/external/
+    mode: 0755
+  tags: ['cluster', 'stonith', 'hetzner']
+- name: Create STONITH devies
+  pcs_resource:
+    name: "STONITH_{{ ansible_hostname }}"
+    state: present
+    resource_type: "stonith:external/hetzner_cloud"
+    options: "api_token={{ api_token }} hostname={{ ansible_hostname }} meta failure-timeout=60"
+  tags: ['cluster', 'stonith', 'hetzner']
+- name: Force stonith location not on own host
+  pcs_constraint_location:
+    state: present
+    resource: "STONITH_{{ ansible_hostname }}"
+    node_name: "{{ ansible_hostname  }}"
+    score: "-INFINITY"
+  tags: ['cluster', 'stonith', 'hetzner']

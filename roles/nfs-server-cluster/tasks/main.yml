@@ -1,0 +1,17 @@
+---
+- name: Create nfs resource
+  pcs_resource:
+    name: nfs_server
+    resource_type: "ocf:heartbeat:nfsserver"
+    options: "nfs_ip={{ nfs_ip }} meta failure-timeout=60"
+  run_once: true
+- name: create nfs constraint to the mountpoint
+  pcs_constraint_colocation:
+    resource1: nfs_server
+    resource2: "{{ nfs_mount }}"
+  run_once: true
+- name: create nfs constraint to start after the mountpoint
+  pcs_constraint_order:
+    resource1: "{{ nfs_mount }}"
+    resource2: nfs_server
+  run_once: true

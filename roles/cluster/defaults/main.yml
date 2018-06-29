@@ -1,0 +1,6 @@
+clustergroup: all
+ini_file: cluster.ini
+ini_section: pacemaker
+clustername: cmdcluster
+disable_stonith: false
+stickyness: 100

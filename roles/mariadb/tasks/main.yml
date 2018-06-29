@@ -1,0 +1,13 @@
+---
+- name: Create maridb config directory
+  file:
+    path: /etc/mysql/mariadb.conf.d
+    state: directory
+- name: Upload mariadb 99-server.cnf
+  template:
+    src: 99-server.cnf
+    dest: /etc/mysql/mariadb.conf.d/99-server.cnf
+- name: Install Mariadb
+  apt:
+    name: mariadb-server
+    state: present

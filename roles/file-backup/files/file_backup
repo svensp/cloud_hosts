@@ -1,0 +1,261 @@
+#!/bin/bash
+
+################################################################################
+# Setup environment
+################################################################################
+
+# Exit on exitcode != 0 of any command
+set -e
+
+PREFIX=${PREFIX=/usr/local}
+DEFAULTS="${PREFIX}/etc/defaults/file_backup"
+
+if [ -f "${DEFAULTS}" ] ; then
+	. "${DEFAULTS}"
+fi
+
+LOG_LEVEL=${LOG_LEVEL:-2}
+
+SILENT="FALSE"
+LOG_ERROR=1
+LOG_WARNING=2
+LOG_INFO=3
+LOG_DEBUG=4
+KEEP_BACKUPS_FOR=${KEEP_BACKUPS_FOR:-4w}
+
+log() {
+	LEVEL=${1}
+	shift
+
+	case $LEVEL in
+		$LOG_ERROR)
+			LEVEL_NAME="ERROR"
+			;;
+		$LOG_WARNING)
+			LEVEL_NAME="WARNING"
+			;;
+		$LOG_INFO)
+			LEVEL_NAME="INFO"
+			;;
+		$LOG_DEBUG)
+			LEVEL_NAME="DEBUG"
+			;;
+		"*")
+			LEVEL_NAME="UNKOWN"
+			;;
+	esac
+
+	if [ "$LEVEL" -le "${LOG_LEVEL}" ] ; then
+		if [ "$LEVEL" -eq "${LOG_ERROR}" ] ; then
+			echo "$LEVEL_NAME - $@" 1>&2
+		else
+			echo "$LEVEL_NAME - $@"
+		fi
+
+	fi
+}
+
+SFTP_KEY=${KEYFILE}
+SFTP_USER=${SFTP_USER:-}
+SFTP_SERVER=${SFTP_SERVER:-}
+SFTP_DIRECTORY=${SFTP_DIRECTORY:-}
+
+
+################################################################################
+# Functions
+################################################################################
+help() {
+	echo "$0 MODE"
+	echo
+	echo "Available Modes:"
+	echo "create: [NAME] - Create backup to all listed repositories. NAME defaults to"
+	echo "        date +%Y-%m-%d-%H-%M"
+	echo "list: [REPOSITORY_INDEX] - List all backups in the repository."
+	echo "      REPOSITORY_INDEX defaults to 0"
+	echo "mount: NAME MOUNTPOINT [REPOSITORY_INDEX] - Mount the named backup to the"
+	echo "       given mountpoint in the filesystem. REPOSITORY_INDEX defaults to 0"
+}
+
+# Init all repositories
+#
+# Parameters:
+# - Name
+#
+init() {
+
+	export BORG_RSH="ssh -i ${KEYFILE} -o StrictHostKeyChecking=no"
+	# Set in defaults
+	export BORG_PASSPHRASE
+
+	IFS='
+'
+	for REPOSITORY in ${REPOSITORIES} ; do
+
+		log "${LOG_INFO}" "Initializing repository in ${REPOSITORY}"
+
+		borg init --encryption=repokey "${REPOSITORY}"
+	done
+}
+
+
+#
+# Create backup
+#
+# Parameters:
+# - Name
+#
+create() {
+	NAME="${1}"
+
+	export BORG_RSH="ssh -i ${KEYFILE} -o StrictHostKeyChecking=no"
+	# Set in defaults
+	export BORG_PASSPHRASE
+
+	IFS='
+'
+	for REPOSITORY in ${REPOSITORIES} ; do
+
+		log "${LOG_INFO}" "Creating backup in ${REPOSITORY}"
+
+		if [ "${SILENT}" = "TRUE" ] ; then
+			BORG_REPO="${REPOSITORY}" borg create "::$NAME" $TARGETS > /dev/null
+		else
+			BORG_REPO="${REPOSITORY}" borg create --stats "::$NAME" $TARGETS
+		fi
+	done
+
+}
+
+#
+# List backups
+#
+# Parameters:
+# - Repository Index - Defaults to 0
+#
+list() {
+	REPOSITORY_INDEX=${1:-0}
+
+	export BORG_RSH="ssh -i ${KEYFILE} -o StrictHostKeyChecking=no"
+	# Set in defaults
+	export BORG_PASSPHRASE
+
+	IFS='
+'
+	REPOS=( ${REPOSITORIES[@]} )
+	REPOSITORY="${REPOS[REPOSITORY_INDEX]}"
+
+	log "${LOG_DEBUG}" "Listing backups in ${REPOSITORY}"
+	borg list "${REPOSITORY}"
+
+}
+
+#
+# Prune backups
+#
+# Parameters:
+# - Repository Index - Defaults to 0
+#
+prune() {
+	REPOSITORY_INDEX=${1:-0}
+
+	export BORG_RSH="ssh -i ${KEYFILE} -o StrictHostKeyChecking=no"
+	# Set in defaults
+	export BORG_PASSPHRASE
+
+	IFS='
+'
+	for REPOSITORY in ${REPOSITORIES} ; do
+		log "${LOG_DEBUG}" "Pruning backups in ${REPOSITORY}"
+		borg prune --keep-within "${KEEP_BACKUPS_FOR}" "${REPOSITORY}" 
+	done
+
+}
+
+#
+# Mount backup
+#
+# Parameters:
+# - Name
+#
+mount() {
+	NAME="${1}"
+	MOUNTPOINT="${2}"
+	REPOSITORY_INDEX=${3:-0}
+
+	REPOS=( ${REPOSITORIES[@]} )
+	REPOSITORY="${REPOS[REPOSITORY_INDEX]}"
+
+	export BORG_RSH="ssh -i ${KEYFILE} -o StrictHostKeyChecking=no"
+	# Set in defaults
+	export BORG_PASSPHRASE
+
+	IFS='
+'
+
+	log "${LOG_INFO}" "Mounting backup ${NAME} from ${REPOSITORY} to ${MOUNTPOINT}"
+	borg mount "${REPOSITORY}::${NAME}" "${MOUNTPOINT}"
+
+}
+
+################################################################################
+# Start
+################################################################################
+if [ "${1}" == "-s" ] ; then
+	LOG_LEVEL="${LOG_ERROR}"
+	SILENT="TRUE"
+	shift
+fi
+
+MODE="${1}"
+if [ -z "${MODE}" ] ; then
+	help
+	exit 1
+fi
+shift
+
+case "$MODE" in
+	init)
+		init
+		;;
+	create)
+		NAME="${1}"
+		if [ -z "${NAME}" ] ; then
+			NAME="$(date +'%Y-%m-%d_%H-%M')"
+
+			log "${LOG_INFO}" "No backup name given. Defaulting to ${NAME}"
+		fi
+		create "${NAME}"
+		;;
+	list)
+		list "${1}"
+		;;
+	prune)
+		prune "${1}"
+		;;
+	mount)
+		NAME="${1}"
+		if [ -z "${NAME}" ] ; then
+			help
+
+			log "${LOG_ERROR}" "No backup name given"
+			exit 1
+		fi
+		MOUNTPOINT="${2}"
+		if [ -z "${MOUNTPOINT}" ] ; then
+			help 
+
+			log "${LOG_ERROR}" "No mountpoint given"
+			exit 1
+		fi
+		shift 2
+		mount "${NAME}" "${MOUNTPOINT}" "${3}"
+		;;
+	help)
+		help
+		exit 0
+		;;
+	*)
+		help
+		exit 1
+		;;
+esac

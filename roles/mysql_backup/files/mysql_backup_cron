@@ -1,0 +1,41 @@
+#!/bin/sh
+
+help() {
+	echo "$0 MODE"
+	echo 
+	echo "MODE: "
+	echo "     - FULL Create a full backup from today"
+	echo "     - INCREMENTAL Create an incremental backup based on yesterdays"
+	echo "                   backup"
+	echo "     - DELETE Delete the Backup from 4 weeks ago"
+	echo
+	echo "The use-case for this script is to call ${0} FULL and ${0} DELETE via"
+	echo "cron on sundays and call ${0} INCREMENTAL on monday through friday."
+	echo "This will do father-son backups with 3 full weeks and the current week"
+	echo "building as it goes on."
+	echo
+	echo "It would also be possible to call DELETE every day but note that removing"
+	echo "a backup also causes all backups to be removed which are based on it, making"
+	echo "it redundant in the above use-case."
+}
+
+MODE="${1}"
+if [ -z "${1}" ] ; then
+	help
+	exit
+fi
+
+case ${MODE} in
+	FULL)
+		mysql_backup FULL $(date +"%Y-%m-%d")
+		exit $?
+		;;
+	INCREMENTAL)
+		mysql_backup INCREMENTAL $(date --date=yesterday +"%Y-%m-%d") $(date +"%Y-%m-%d") 
+		exit $?
+		;;
+	DELETE)
+		mysql_backup DELETE "$(date --date="4 weeks ago" +"%Y-%m-%d")"
+		exit $?
+		;;
+esac

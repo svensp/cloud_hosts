@@ -1,0 +1,17 @@
+keyfile: /usr/local/lib/file_backup/key
+cron:
+  minute: 0
+  hour: 1
+  day_of_month: "*"
+  month: "*"
+  day_of_week: "*"
+  user: root
+prune:
+  minute: 30
+  hour: 0
+  day_of_month: "*"
+  month: "*"
+  day_of_week: "*"
+  user: root
+symlink: false
+keep_backups_for: 4w

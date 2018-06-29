@@ -1,0 +1,54 @@
+---
+- name: Add backports repository to have borgbackup 1.1.5
+  apt_repository:
+    repo: deb http://ftp.debian.org/debian stretch-backports main
+    state: present
+  tags: [ 'file-backup' ]
+- name: Install borgbackup
+  apt:
+    name: borgbackup=1.1.5*
+    state: present
+    default_release: stretch-backports
+  tags: [ 'file-backup' ]
+- name: Create /usr/local/etc/defaults
+  file:
+    path: /usr/local/etc/defaults
+    state: directory
+    mode: 0700
+  tags: [ 'file-backup' ]
+- name: Install defaults file
+  template:
+    src: defaults
+    dest: /usr/local/etc/defaults/file_backup
+    mode: 0600
+  tags: [ 'file-backup' ]
+- name: Create /usr/local/lib/file_backup/
+  file:
+    path: /usr/local/lib/file_backup
+    state: directory
+    mode: 0755
+  tags: [ 'file-backup' ]
+- name: Copy key file
+  copy:
+    src: file_backup/key
+    dest: /usr/local/lib/file_backup/key
+    mode: 0600
+  tags: [ 'file-backup' ]
+- name: Copy file_backup script
+  copy:
+    src: file_backup
+    dest: /usr/local/bin/file_backup
+    mode: 0755
+  tags: [ 'file-backup' ]
+- name: Create crontab
+  template:
+    src: crontab
+    dest: /usr/local/lib/file_backup/crontab
+  tags: [ 'file-backup' ]
+- name: Symlink crontab to /etc/cron.d
+  file:
+    dest: /etc/cron.d/mysql_backup
+    src: /usr/local/lib/file_backup/crontab
+    state: link
+  tags: [ 'file-backup' ]
+  when: symlink

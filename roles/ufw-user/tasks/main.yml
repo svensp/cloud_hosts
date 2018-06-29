@@ -1,0 +1,27 @@
+---
+- name: Create ufwmanager group
+  group:
+    name: ufwmanager
+    state: present
+  tags: ['ufw-user']
+- name: Create ufw user
+  user:
+    name: "{{ ufw_user }}"
+    group: ufwmanager
+    state: present
+    password: "{{ ufw_password }}"
+  tags: ['ufw-user']
+- name: Allow 'ufwmanager' group to have passwordless sudo to ufw
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: '^%ufwmanager'
+    line: '%ufwmanager ALL = (root) ALL'
+    validate: visudo -cf %s
+  tags: ['ufw-user']
+- name: Set ufw user ssh key
+  authorized_key:
+    user: "{{ ufw_user }}"
+    key: "{{ lookup('file', ufw_ssh_public_key) }}"
+    state: present
+  tags: ['ufw-user']

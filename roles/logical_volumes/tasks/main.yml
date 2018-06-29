@@ -1,0 +1,14 @@
+---
+- name: "Check for required variables"
+  fail: msg="Variable '{{ item }}' is not defined"
+  when: item not in vars
+  with_items:
+    - group
+    - volumes
+- name: Create volumes
+  lvol:
+    vg: "{{ group }}"
+    lv: "{{ item.name }}"
+    size: "{{ item.size }}"
+    shrink: false
+  with_items: "{{ volumes }}"

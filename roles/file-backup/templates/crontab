@@ -1,0 +1,4 @@
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+{{ cron.minute }} {{ cron.hour }} {{ cron.day_of_month }} {{ cron.month }} {{ cron.day_of_week }} {{ cron.user }} file_backup -s create > /dev/null
+{{ prune.minute }} {{ prune.hour }} {{ prune.day_of_month }} {{ prune.month }} {{ prune.day_of_week }} {{ prune.user }} file_backup prune > /dev/null

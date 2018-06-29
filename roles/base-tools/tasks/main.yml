@@ -1,0 +1,13 @@
+# all tools which are necessary to for basic installation and user creation
+---
+- name: Install base tools
+  apt:
+    name: "{{ item }}"
+    state: latest
+  with_items:
+    - zsh
+    - sudo
+    - rsync
+    - git
+    - lvm2
+  tags: ['apt', 'base']

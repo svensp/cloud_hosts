@@ -1,0 +1,22 @@
+---
+- name: Create temporary file for install python script
+  tempfile:
+    prefix: install
+    state: file
+  register: tempfile
+  when: 'ansible_hostname == "rescue"'
+- name: Copy python install scrypt to tempfile
+  copy:
+    src: install_python.sh
+    dest: "{{ tempfile.path }}"
+    mode: 0777
+  when: 'ansible_hostname == "rescue"'
+- name: Install if system is in rescue mode
+  shell: "/root/.oldroot/nfs/install/installimage -a -n {{ inventory_hostname }} -b grub -r no -p /boot:ext4:256M,lvm:vg0:all -v {% for item in volumes %}{%- if not loop.first -%},{%- endif -%}vg0:{{ item.name }}:{{ item.mountpoint }}:{{ item.fs }}:{{ item.size }}{%- endfor %} -d sda -t yes -i /root/.oldroot/nfs/install/../images/Debian-9?-stretch-64-minimal.tar.gz -x {{ tempfile.path }}"
+  when: 'ansible_hostname == "rescue"'
+- name: Reboot system
+  command: "shutdown -r 1"
+  when: 'ansible_hostname == "rescue"'
+- name: Wait for system to come back online
+  local_action: "wait_for host={{ ansible_ssh_host }} state=started delay=90 timeout=60"
+  when: 'ansible_hostname == "rescue"'

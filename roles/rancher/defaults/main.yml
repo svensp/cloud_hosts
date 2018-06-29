@@ -1,0 +1,2 @@
+version: stable
+image: rancher/server

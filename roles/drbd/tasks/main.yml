@@ -1,0 +1,81 @@
+---
+- name: "Check for required variables"
+  fail: msg="Variable '{{ item }}' is not defined"
+  when: item not in vars
+  with_items:
+    - devices
+    - drbd_group
+  tags: ['drbd']
+- name: Install drbd utils
+  apt:
+    name: drbd-utils
+    state: present
+  tags: ['drbd', 'apt']
+- name: Install drbd global_common.conf
+  template:
+    src: global_common.conf
+    dest: /etc/drbd.d/global_common.conf
+  register: global_common
+  tags: ['drbd', 'config']
+- name: Install drbd resources
+  template:
+    src: resource.res
+    dest: /etc/drbd.d/{{ item.name }}.res
+  with_items: "{{ devices }}"
+  notify:
+    - Adjust drbd
+  tags: ['drbd', 'config']
+- name: Start drbd
+  systemd:
+    state: started
+    name: drbd
+  tags: ['drbd', 'systemd-start']
+- name: check if devices are initialized
+  shell: "drbd-overview | grep ':{{ item.name }}/'"
+  ignore_errors: yes
+  register: uninitialized
+  with_items: "{{ devices }}"
+  changed_when: no
+  tags: ['drbd', 'initialize']
+- name: Initialize drbd devices
+  shell: "yes yes | drbdadm create-md {{ item.item.name }} && sleep 1s"
+  when: "item.stdout.find('Diskless/') != -1"
+  with_items: "{{ uninitialized.results }}"
+  tags: ['drbd', 'initialize', 'create-md']
+- name: check if devices are down
+  shell: "drbd-overview | grep ':{{ item.name }}/'"
+  ignore_errors: yes
+  register: down
+  with_items: "{{ devices }}"
+  changed_when: no
+  tags: ['drbd', 'initialize']
+- name: Start drbd devices
+  command: "drbdadm up {{ item.item.name }}"
+  when: "item.stdout.find('Unconfigured') != -1"
+  with_items: "{{ down.results }}"
+  tags: ['drbd', 'initialize', 'up']
+- name: check if initial sync is necessary
+  shell: "drbd-overview | grep ':{{ item.name }}/'"
+  ignore_errors: yes
+  register: primary
+  changed_when: no
+  with_items: "{{ devices }}"
+  tags: ['drbd', 'initialize', 'sync']
+- name: 'Force primary'
+  shell: "drbdadm primary --force {{ item.item.name }}"
+  run_once: yes
+  when: "item.stdout.find('Inconsistent/Inconsistent') != -1"
+  with_items: "{{ primary.results }}"
+  tags: ['drbd', 'initialize', 'filesystem']
+- name: 'Wait for sync'
+  shell: "while drbd-overview | grep -q SyncTarget ; do sleep 1s ; done"
+  tags: ['drbd', 'initialize', 'filesystem']
+  changed_when: no
+- name: 'Write filesystems on drbd device'
+  filesystem:
+    fstype: ext4
+    dev: "{{ item.item.drbd_device }}"
+  run_once: yes
+  when: "item.stdout.find('Primary/') != -1"
+  with_items: "{{ primary.results }}"
+  tags: ['drbd', 'initialize', 'filesystem']

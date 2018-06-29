@@ -1,0 +1,59 @@
+---
+- name: "Check for required variables"
+  fail: msg="Variable '{{ item }}' is not defined"
+  when: item not in vars
+  with_items:
+    - devices
+  tags: ['cluster_drbd']
+- name: Create monutpoints
+  file:
+    path: "{{ item.mnt }}"
+    state: directory
+  with_items: '{{ devices }}'
+  tags: ['cluster_drbd', 'mounts']
+- name: Create drbd resource
+  pcs_resource:
+    name: "{{ item.name }}"
+    state: present
+    resource_type: "ocf:linbit:drbd"
+    options: "drbd_resource={{ item.name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true op monitor interval=20s"
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Create drbd mount resource
+  pcs_resource:
+    name: "{{ item.name }}_mount"
+    state: present
+    resource_type: "Filesystem"
+    options: "device=/dev/{{ item.dev }} directory={{ item.mnt }} fstype={{ item.format }} op monitor interval=20s meta failure-timeout=60"
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Create drbd mount colocation
+  pcs_constraint_colocation:
+    resource1: "{{ item.name }}_mount"
+    resource2: "{{ item.name }}-master"
+    resource2_role: Master
+    state: present
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-colocation']
+- name: Create drbd mount order
+  pcs_constraint_order:
+    resource1: "{{ item.name }}-master"
+    resource2: "{{ item.name }}_mount"
+    resource1_action: promote
+    state: present
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-order']
+- name: Create drbd colocation
+  pcs_constraint_colocation:
+    resource1: "{{ item.name }}-master"
+    resource2: "VirtualIP_{{ item.colocation_ip }}"
+    resource1_role: Master
+    state: present
+  run_once: true
+  when: item.colocation_ip is defined
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-colocation']

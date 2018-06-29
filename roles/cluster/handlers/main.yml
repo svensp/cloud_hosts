@@ -1,0 +1,3 @@
+- name: Cluster password created
+  debug:
+    msg: "IMPORTANT: The cluster.ini was created. Please check this file into your repository"

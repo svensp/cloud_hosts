@@ -1,0 +1,12 @@
+#!/bin/sh
+IFS='
+'
+for USER in $(find users/ -mindepth 1 -maxdepth 1 -type d -printf '%f\n') ; do
+	for DIRECTORY in users/$USER/copy/  ; do
+		if [ -d "$DIRECTORY" ] ; then
+			for FILE in $(find "$DIRECTORY" -mindepth 1 -maxdepth 1 -printf '%f\n') ; do
+				echo $USER $FILE
+			done
+		fi
+	done
+done

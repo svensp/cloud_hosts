@@ -1,0 +1,19 @@
+link_crontab: false
+crontab:
+  minute: 0
+  hour: 1
+
+prefix: "/usr/local/lib/mysql_backup"
+plugin: "scp"
+log: "3"
+datadir: "/var/mysql"
+history_file: "backup_history.txt"
+database_connect: "--socket=/var/run/mysqld/mysqld.sock"
+database_user: ""
+database_password: ""
+
+sftp_server: "localhost"
+sftp_root_directory: "backup"
+sftp_user: "root"
+sftp_password: ""
+sftp_key: "/usr/local/lib/mysql_backup/key"

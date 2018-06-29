@@ -1,0 +1,5 @@
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+{{ crontab.minute }} {{ crontab.hour}} * * sun root mysql_backup_cron FULL > /dev/null
+{{ crontab.minute }} {{ crontab.hour}} * * sun root mysql_backup_cron DELETE > /dev/null
+{{ crontab.minute }} {{ crontab.hour}} * * mon-fri root mysql_backup_cron INCREMENTAL /dev/null

@@ -1,0 +1,117 @@
+---
+- name: Install Pacemaker + Corosync
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+  - corosync
+  - pacemaker
+  - pcs
+  - pacemaker-cli-utils
+  - libxml2-utils
+  tags: ['apt', 'cluster']
+- name: "Check if cluster.ini exists"
+  command: "test -f cluster.ini"
+  delegate_to: localhost
+  register: cluster_ini_exists
+  run_once: true
+  changed_when: "cluster_ini_exists.rc != 0"
+  notify: Cluster password created
+  ignore_errors: true
+  tags: ['cluster', 'cluster-ini']
+- name: Create cluster.ini
+  shell: "(echo '[{{ ini_section }}]'; echo -n 'password=' ; cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32}) > cluster.ini"
+  delegate_to: localhost
+  when: "cluster_ini_exists.rc != 0"
+  tags: ['cluster', 'cluster-ini']
+- name: Password debug
+  debug:
+    msg: "Password: {{ lookup('ini', 'password section='+ini_section+' file=cluster.ini') }}"
+  delegate_to: localhost
+  tags: ['cluster', 'cluster-ini']
+- name: Password hash debug
+  debug:
+    msg: "Password Hash: {{ lookup('ini', 'password section='+ini_section+' file=cluster.ini') | hash('sha512') }}"
+  delegate_to: localhost
+  tags: ['cluster', 'cluster-ini']
+- name: Start pcsd
+  systemd:
+    name: pcsd
+    state: started
+  tags: ['cluster', 'systemd', 'pcsd', 'systemd-start']
+- name: Enable starting pcsd on system boot
+  systemd:
+    name: pcsd
+    enabled: yes
+  tags: ['cluster', 'systemd', 'pcsd', 'systemd-enable']
+- name: Create hacluster user for use with pcs
+  user:
+    name: hacluster
+    password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) | hash('sha512') }}"
+    update_password: always
+  tags: ['cluster', 'user']
+- name: Check if host is already part of cluster
+  command: "grep -q 'cluster_name: {{ clustername }}' /etc/corosync/corosync.conf"
+  register: clusterexists
+  check_mode: no
+  ignore_errors: yes
+  changed_when: no
+  tags: ['cluster', 'create']
+- name: Stop running pacemaker
+  systemd:
+    name: pacemaker
+    state: stopped
+  when: clusterexists.rc != 0
+  tags: ['cluster', 'create']
+- name: Stop running corosync
+  systemd:
+    name: corosync
+    state: stopped
+  when: clusterexists.rc != 0
+  tags: ['cluster', 'create']
+- name: Remove debian default corosync.conf
+  file:
+    path: /etc/corosync/corosync.conf
+    state: absent
+  when: clusterexists.rc != 0
+- name: "Connect cluster nodes"
+  command: "pcs cluster auth{% for item in groups[clustergroup] %} {{ item }}{% endfor %} -u hacluster -p {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
+  when: clusterexists.rc != 0
+  tags: ['cluster', 'create']
+- name: "Setup cluster"
+  command: "pcs cluster setup --force --name {{ clustername }} {% for item in groups[clustergroup] %} {{ item }}{% endfor %}"
+  run_once: true
+  when: clusterexists.rc != 0
+  tags: ['cluster', 'create']
+- name: Start Corosync
+  systemd:
+    name: corosync
+    state: started
+  tags: ['cluster', 'systemd', 'corosync', 'systemd-start']
+- name: Start Pacemaker
+  systemd:
+    name: pacemaker
+    state: started
+  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-start']
+- name: Enable starting Corosync at boot
+  systemd:
+    name: corosync
+    enabled: true
+  tags: ['cluster', 'systemd', 'corosync', 'systemd-enable']
+- name: Enable starting Pacemaker at boot
+  systemd:
+    name: pacemaker
+    enabled: true
+  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-enable']
+- name: Set stickyness to prevent resources from moving unnecessarily
+  command: "pcs resource defaults resource-stickyness={{ stickyness }}"
+  run_once: true
+  changed_when: no
+  tags: ['cluster', 'pacemaker', 'stickyness']
+- name: "Disable stonith"
+  command: "pcs property set stonith-enabled=false"
+  run_once: true
+  when:
+  - clusterexists.rc != 0
+  - disable_stonith
+  tags: ['cluster', 'pcs']

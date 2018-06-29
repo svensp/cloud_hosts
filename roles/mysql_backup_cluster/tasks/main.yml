@@ -1,0 +1,21 @@
+---
+- name: Create mysql_backup crontab resource
+  pcs_resource:
+    name: "{{ resource.name }}"
+    state: present
+    resource_type: "ocf:heartbeat:symlink"
+    options: "link=/etc/cron.d/mysql_backup target=\"/usr/local/lib/mysql_backup/crontab\" backup_suffix=\".disabled\" meta failure-timeout=60"
+  run_once: true
+  tags: ['mysql_backup_cluster']
+- name: Create mysql_backup cluster colocation constraint
+  pcs_constraint_colocation:
+    resource1: "{{ resource.name }}"
+    resource2: "{{ resource.parent }}"
+  run_once: true
+  tags: ['mysql_backup_cluster', 'cluster', 'pcs-constraint', 'pcs-colocation']
+- name: Create mysql_backup cluster order constraint
+  pcs_constraint_order:
+    resource1: "{{ resource.parent }}"
+    resource2: "{{ resource.name }}"
+  run_once: true
+  tags: ['mysql_backup_cluster', 'cluster', 'pcs-constraint', 'pcs-order']

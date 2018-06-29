@@ -1,0 +1,74 @@
+---
+- name: Install curl
+  apt:
+    name: curl
+    state: present
+  tags: ['floating_ip', 'apt']
+- name: Create hetzner provider for ocf
+  file:
+    state: directory
+    path: /usr/lib/ocf/resource.d/hetzner
+  tags: ['floating_ip', 'ocf-agent']
+- name: install floating ip ocf
+  copy:
+    src: FloatingIP
+    dest: /usr/lib/ocf/resource.d/hetzner
+    mode: 0755
+  tags: ['floating_ip', 'ocf-agent']
+- name: Create VirtualIP
+  pcs_resource:
+    name: "VirtualIP_{{ ip_name }}"
+    state: present
+    resource_type: "ocf:heartbeat:IPaddr2"
+    options: "ip={{ floating_ip }} cidr_netmask=32 nic={{ ip_nic }} op monitor interval=30s meta resource-stickyness={{ stickyness }} failure-timeout=60"
+  run_once: true
+  tags: ['floating_ip', 'pcs', 'pcs_resource']
+  when: "permanent == False"
+- name: Create FloatingIP
+  pcs_resource:
+    name: "FloatingIP_{{ ip_name }}"
+    state: present
+    resource_type: "ocf:hetzner:FloatingIP "
+    options: "ip={{ floating_ip }} api_token={{ api_token }} op monitor interval=30s meta resource-stickyness={{ stickyness }} failure-timeout=60"
+  run_once: true
+  tags: ['floating_ip', 'pcs', 'pcs-resource']
+- name: Create colocation
+  pcs_constraint_colocation:
+    resource1: "VirtualIP_{{ ip_name }}"
+    resource2: "FloatingIP_{{ ip_name }}"
+    state: present
+  run_once: true
+  tags: ['floating_ip', 'pcs', 'pcs-constraint', 'pcs-colocation']
+  when: "permanent == False"
+- name: Add floating ip to network adapter configuration
+  interfaces_file:
+    iface: "{{ ansible_default_ipv4.interface }}"
+    option: post-up
+    value: "ip addr add {{ floating_ip  }}/32 dev {{ ansible_default_ipv4.interface }}"
+    state: present
+  ignore_errors: true
+  register: interface_file
+  when: "permanent == True"
+- name: Add floating ip to network adapter configuration(cloud version)
+  interfaces_file:
+    iface: "{{ ansible_default_ipv4.interface }}"
+    option: post-up
+    value: "ip addr add {{ floating_ip  }}/32 dev {{ ansible_default_ipv4.interface }}"
+    state: present
+    dest: /etc/network/interfaces.d/50-cloud-init.cfg
+  when: 
+  - "permanent == True"
+  - "interface_file.failed is defined"
+  - "interface_file.failed == True"
+- name: Check if floating ip is already added to the interface
+  shell: "ip addr show {{ ansible_default_ipv4.interface }} | grep -q '{{ floating_ip }}'"
+  when: "permanent == True"
+  ignore_errors: true
+  changed_when: no
+  register: address_exists
+- name: Add floating ip to network adapter
+  shell: "ip addr add {{ floating_ip  }}/32 dev {{ ansible_default_ipv4.interface }}"
+  when: 
+    - "permanent == True" 
+    - "address_exists.rc != 0"
+

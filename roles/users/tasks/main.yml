@@ -1,0 +1,79 @@
+---
+- name: Install rsync
+  apt:
+    name: rsync
+    state: present
+- name: add group
+  group:
+    name: "{{ item }}"
+    state: present
+  with_lines:
+    - find users -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+- name: add users
+  user:
+    name: "{{ item }}"
+    state: present
+    group: "{{ item }}"
+    groups: sudo
+    append: true
+    shell: /bin/zsh
+    password: "{{ lookup('file', 'users/' + item + '/password') }}"
+    update_password: always
+  with_lines:
+    - find users -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+- name: Add ssh key
+  authorized_key:
+    user: "{{ item }}"
+    state: present
+    key: "{{ lookup('file', 'users/'+ item + '/id_rsa.pub')}}"
+  with_lines:
+    - find users -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+- name: create ssh
+  file:
+    path: "/home/{{ item }}/.ssh"
+    state: directory
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: 0700
+  with_lines:
+    - find users -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+- name: add ssh key
+  copy:
+    src: "users/{{ item }}/id_rsa.pub"
+    dest: "/home/{{ item }}/.ssh/authorized_keys"
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: 0700
+  with_lines:
+    - roles/users/exec/list_users
+- name: ensure .zshrc exists
+  copy:
+    content: ""
+    dest: "/home/{{ item }}/.zshrc"
+    force: no
+    owner: "{{ item }}"
+    group: "{{ item }}"
+    mode: 0700
+  with_lines:
+    - find users -mindepth 1 -maxdepth 1 -type d -printf '%f\n'
+- name: copy user files
+  synchronize:
+    src: "users/{% set list = item.split(' ') %}{{ list[0] }}/copy/{{ list[1] }}"
+    dest: "{% set list = item.split(' ') %}/home/{{ list[0] }}/"
+    owner: true
+    group: true
+  with_lines:
+    - roles/users/exec/list_user_files
+- name: create groups 
+  group:
+    name: "{% set list = item.split(' ') %}{{ list[1] }}"
+  with_lines:
+    - roles/users/exec/list_user_groups
+- name: set group roles
+  user:
+    name: "{% set list = item.split(' ') %}{{ list[0] }}"
+    groups:
+    - "{% set list = item.split(' ') %}{{ list[1] }}"
+    append: true
+  with_lines:
+    - roles/users/exec/list_user_groups

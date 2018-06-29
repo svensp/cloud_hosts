@@ -1,0 +1,45 @@
+---
+- name: Install kernel nfs server
+  apt:
+    name: nfs-kernel-server
+    state: present
+  tags: ['nfs-server']
+- name: upload /etc/exports
+  template:
+    src: exports
+    dest: /etc/exports
+  notify:
+    - Reload exports
+  tags: ['nfs-server']
+- name: Check if export is mounted
+  shell: "mount | grep -q {{ item.mount }}"
+  ignore_errors: true
+  with_items: "{{ exports }}"
+  changed_when: false
+  register: mounted
+  tags: ['nfs-server']
+- name: Create export directory
+  file:
+    path: "{{ item.item.path }}"
+    state: directory
+    mode: 0777
+  when: "item.rc == 0"
+  with_items: "{{ mounted.results }}"
+  tags: ['nfs-server']
+- name: Create info directory
+  file:
+    path: "{{ item.item.mount }}/nfsinfo"
+    state: directory
+  when: "item.rc == 0"
+  with_items: "{{ mounted.results }}"
+  tags: ['nfs-server']
+- name: Enable rpc-statd - File locking für nfs
+  systemd:
+    name: rpc-statd
+    enabled: true
+  tags: ['nfs-server']
+- name: Start rpc-statd - File locking für nfs
+  systemd:
+    name: rpc-statd
+    state: started
+  tags: ['nfs-server']

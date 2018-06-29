@@ -1,0 +1,21 @@
+---
+- name: Create file_backup crontab resource
+  pcs_resource:
+    name: "{{ resource.name }}"
+    state: present
+    resource_type: "ocf:heartbeat:symlink"
+    options: "link=/etc/cron.d/file_backup target=\"/usr/local/lib/file_backup/crontab\" backup_suffix=\".disabled\" meta failure-timeout=60"
+  run_once: true
+  tags: ['file-backup-cluster']
+- name: Create file_backup cluster colocation constraint
+  pcs_constraint_colocation:
+    resource1: "{{ resource.name }}"
+    resource2: "{{ resource.parent }}"
+  run_once: true
+  tags: ['file-backup-cluster', 'cluster', 'pcs-constraint', 'pcs-colocation']
+- name: Create file_backup cluster order constraint
+  pcs_constraint_order:
+    resource1: "{{ resource.parent }}"
+    resource2: "{{ resource.name }}"
+  run_once: true
+  tags: ['file-backup-cluster', 'cluster', 'pcs-constraint', 'pcs-order']

@@ -1,0 +1,64 @@
+defaultEntryPoints = ["http", "https"]
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+	  [entryPoints.http.redirect]
+		 entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+    [entryPoints.https.tls]
+
+logLevel = "INFO"
+
+[traefikLog]
+
+[accessLog]
+
+[acme]
+email = "{{ email }}"
+
+storage = "/etc/traefik/acme.json"
+
+entryPoint = "https"
+
+[[acme.domains]]
+   main = "{{ url }}"
+
+[acme.httpChallenge]
+  entryPoint = "http"
+
+[file]
+# Backends
+[backends]
+
+  [backends.rancher]
+    [backends.rancher.healthcheck]
+	 	path = "/ping"
+		interval = "5s"
+    [backends.rancher.circuitbreaker]
+		 expression = "NetworkErrorRatio() > 0.5"
+    [backends.rancher.servers]
+{% for host in groups[group] %}
+      [backends.rancher.servers.server{{ loop.index0 }}]
+	{% if host != inventory_hostname %}
+        url = "http://{{ hostvars[host].ansible_default_ipv4.address }}:8080"
+	{% else %}
+	{# Der Port 8080 ist auf die Host-Ip gebunden. Zugriff vom eigenen Host #}
+	{# passiert aber immer über localhost. #}
+	{# Lösung: Zugriff über das geteilte Docker Netzwerk #}
+        url = "http://rancher-server:8080"
+	{% endif %}
+{% endfor %}
+
+# Frontends
+[frontends]
+
+  [frontends.frontend1]
+    entryPoints = ["http", "https"]
+    backend = "rancher"
+    passHostHeader = true
+
+    [frontends.frontend1.routes]
+      [frontends.frontend1.routes.route0]
+        rule = "Host:{{ url }}"

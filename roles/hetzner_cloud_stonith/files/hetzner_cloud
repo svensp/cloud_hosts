@@ -1,0 +1,218 @@
+#!/bin/sh
+#
+#   External STONITH module for Hetzner Cloud.
+#
+#   License:      MIT License (MIT)
+#   (c) 2018-2018 Sven Speckmaier
+#
+#   Thank you to Raoul Scarazzini for writing the external/hetzner STONITH
+#   module which served as reference and inspiration for this
+#
+
+################################################################################
+# Init
+################################################################################
+
+API_TOKEN=$api_token
+HOSTNAME=$hostname
+CLOUDAPI_URL="https://api.hetzner.cloud/"
+
+################################################################################
+# Helper
+################################################################################
+hostinfo() {
+	REQUESTED_FIELD=$1
+
+	if ( curl -f -s -H "Authorization: Bearer $API_TOKEN" \
+		"$CLOUDAPI_URL/v1/servers?name=${HOSTNAME}" | \
+		  python3 -c "import sys, json;
+jsonData = json.load(sys.stdin)
+servers = jsonData['servers']
+if len(servers) < 1:
+	sys.exit(1)
+print(servers[0]['${REQUESTED_FIELD}'])
+sys.exit(0)
+" ) ; then
+		return 0
+	fi
+
+	return 1
+}
+
+hostname_to_id() {
+	hostinfo 'id'
+}
+
+################################################################################
+# Actions
+################################################################################
+get_hosts() {
+	echo $HOSTNAME
+	exit 0
+}
+
+power_on() {
+	SERVER_ID=$(hostname_to_id)
+
+	while ! curl -s -f -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $API_TOKEN" \
+		"$CLOUDAPI_URL/v1/servers/$SERVER_ID/actions/poweron" ; do
+		if [ "$(hostinfo status)" = "running" ] ; then
+			exit 0
+		fi
+		sleep 1
+	done
+
+	exit 0
+}
+
+power_off() {
+	SERVER_ID=$(hostname_to_id)
+
+	while ! ( curl -s -f -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $API_TOKEN" \
+		"$CLOUDAPI_URL/v1/servers/$SERVER_ID/actions/poweroff" ) ; do
+
+		if [ "$(hostinfo status)" = "off" ] ; then
+			exit 0
+		fi
+
+		sleep 1
+	done
+
+	exit 0
+}
+
+reset() {
+	SERVER_ID=$(hostname_to_id)
+
+	while ! ( curl -s -f -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $API_TOKEN" \
+		"$CLOUDAPI_URL/v1/servers/$SERVER_ID/actions/reset" ) ; do
+		sleep 1
+
+		if [ "$(hostinfo status)" = "off" ] ; then
+			power_on
+		fi
+	done
+
+	exit 0
+}
+
+status() {
+	if !command -v python3 > /dev/null 2>&1 ; then
+		exit 1
+	fi
+
+	if [ -z "API_TOKEN" ] ; then
+		exit 1
+	fi
+
+	HOST_STATUS=$(hostinfo status)
+	if [ "$?" != "0" ] ; then
+		exit 1
+	fi
+
+	if [ "$HOST_STATUS" = "running" ] ; then
+		exit 0
+	fi
+
+	exit 1
+}
+
+config_names() {
+	echo "api_token"
+	echo "hostname"
+	exit 0
+}
+
+info_short() {
+	echo "Hetzner Cloud STONITH device"
+	exit 0
+}
+
+info_long() {
+	echo "Hetzner Cloud STONITH through cloud api device"
+	exit 0
+}
+
+info_description() {
+	echo "Hetzner Cloud host management"
+	echo "Uses the Hetzner Cloud api to poweron, poweroff or reset a remote server."
+	exit 0
+}
+
+info_url() {
+	echo "https://docs.hetzner.cloud/"
+	exit 0
+}
+
+info_xml() {
+	cat << CLOUDXML
+<parameters>
+<parameter name="hostname" unique="1" required="1">
+<content type="string" />
+<shortdesc lang="en">
+Hostname
+</shortdesc>
+<longdesc lang="en">
+The name of the host to be managed by this STONITH device.
+Note that having the hostname on the machine different from its name in the Api
+will cause problems for the cluster in generals
+</longdesc>
+</parameter>
+
+<parameter name="api_token" unique="0" required="1">
+<content type="string" />
+<shortdesc lang="en">
+Hetzner Cloud Api access Token
+</shortdesc>
+<longdesc lang="en">
+
+</longdesc>
+</parameter>
+</parameters>
+CLOUDXML
+	exit 0
+}
+
+################################################################################
+# Entrypoint
+################################################################################
+case $1 in
+gethosts)
+	get_hosts
+	exit 0
+	;;
+on)
+	power_on
+	;;
+off)
+	power_off
+	;;
+reset)
+	reset
+	;;
+status)
+	status
+	;;
+getconfignames)
+	config_names
+	;;
+getinfo-devid)
+	info_short
+	;;
+getinfo-devname)
+	info_long
+	;;
+getinfo-devdescr)
+	info_description
+	;;
+getinfo-devurl)
+	info_url
+	;;
+getinfo-xml)
+	info_xml
+	;;
+*)
+	ha_log.sh err "Unkown action $@"
+	exit 1
+	;;
+esac
