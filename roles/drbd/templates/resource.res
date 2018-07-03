@@ -32,6 +32,7 @@ resource {{ item.name }} {
 	{% if resource_level_fencing is defined %}
 		fence-peer "/usr/lib/drbd/crm-fence-peer.sh";
 		after-resync-target "/usr/lib/drbd/crm-unfence-peer.sh";
+		unfence-peer "/usr/lib/drbd/crm-unfence-peer.sh";
 	{% endif %}
 	}
 	net {

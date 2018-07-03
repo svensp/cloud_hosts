@@ -33,13 +33,8 @@
   when: "item.rc == 0"
   with_items: "{{ mounted.results }}"
   tags: ['nfs-server']
-- name: Enable rpc-statd - File locking für nfs
+- name: Disable rpc-statd - File locking für nfs
   systemd:
     name: rpc-statd
-    enabled: true
-  tags: ['nfs-server']
-- name: Start rpc-statd - File locking für nfs
-  systemd:
-    name: rpc-statd
-    state: started
+    enabled: false
   tags: ['nfs-server']
