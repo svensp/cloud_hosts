@@ -1,0 +1,32 @@
+- name: Check if ssh key exists
+  command: "test -f {{ key_path }}"
+  run_once: true
+  ignore_errors: true
+  delegate_to: localhost
+  register: key_exists
+- debug:
+    msg: Key already exists, not creating!
+  when: key_exists.rc == 0
+- debug:
+    msg: Key set in the environment, using those keys.
+  when: "key_exists.rc != 0 and lookup('env', 'PRIVATE_KEY') != '' and lookup('env', 'PUBLIC_KEY') != ''"
+- name: Create key.pub via environment variables PRIVATE_KEY and PUBLIC_KEY if set
+  copy:
+    dest: "{{ key_path }}.pub"
+    content: "{{ lookup('env', 'PUBLIC_KEY') }}"
+  when: "key_exists.rc != 0 and lookup('env', 'PRIVATE_KEY') != '' and lookup('env', 'PUBLIC_KEY') != ''"
+- name: Create key via environment variables PRIVATE_KEY and PUBLIC_KEY if set
+  copy:
+    dest: "{{ key_path }}"
+    content: "{{ lookup('env', 'PRIVATE_KEY') }}"
+  when: "key_exists.rc != 0 and lookup('env', 'PRIVATE_KEY') != '' and lookup('env', 'PUBLIC_KEY') != ''"
+- name: Check is ssh-keygen is installed
+  shell: command -v ssh-keygen >/dev/null 2>&1
+  when: "key_exists.rc != 0 and ( lookup('env', 'PRIVATE_KEY') == '' or lookup('env', 'PUBLIC_KEY') == '' )"
+- name: Create ssh key
+  command: ssh-keygen -b 4096 -t rsa -f "{{ key_path }}" -q -N ""
+  when: "key_exists.rc != 0 and ( lookup('env', 'PRIVATE_KEY') == '' or lookup('env', 'PUBLIC_KEY') == '' )"
+  register: key_created
+- debug:
+    msg: "Key was created! Please commit {{ key_path }} to your version control system"
+  when: "key_created is defined and key_created.rc is defined and key_created.rc == 0"
