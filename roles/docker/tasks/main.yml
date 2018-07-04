@@ -37,3 +37,7 @@
     name: docker-ce={{ docker_version }}.*
     state: present
   tags: ['docker']
+- name: install docker python binding
+  apt:
+    name: python-docker
+    state: present
