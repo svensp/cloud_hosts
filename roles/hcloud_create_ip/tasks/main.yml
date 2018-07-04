@@ -14,7 +14,7 @@
 - name: Create floating ip
   hcloud_floating_ip:
     state: present
-    home_location: location
+    home_location: "{{ location }}""
     type: ipv4
     description: "{{ ip_description }}"
   register: "{{ register_variable }}"
