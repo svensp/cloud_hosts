@@ -31,7 +31,7 @@
   tags: ['cluster', 'cluster-ini']
 - name: Password hash debug
   debug:
-    msg: "Password Hash: {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) | hash('sha512') }}"
+    msg: "Password Hash: {{ lookup('ini', 'password section='+ini_section+' file='+ini_file)|password_hash('sha512') }}"
   delegate_to: localhost
   tags: ['cluster', 'cluster-ini']
 - name: Start pcsd
@@ -47,7 +47,7 @@
 - name: Create hacluster user for use with pcs
   user:
     name: hacluster
-    password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) | hash('sha512') }}"
+    password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file)|password_hash('sha512') }}"
     update_password: always
   tags: ['cluster', 'user']
 - name: Check if host is already part of cluster
