@@ -16,16 +16,8 @@
     home_location: fsn1
     type: ipv4
     description: "{{ ip_description }}"
+  register: "{{ register_variable }}"
   when: "not ip_exists"
 - debug:
     msg: "Ip already exists, not creating"
   when: "ip_exists"
-- hcloud_floating_ip:
-    state: list
-  register: list_ips_after
-# TODO: somehow make this more accessible, consider reuse of the role with different descriptions / ip adresses
-- name: Set created_floating_ip to the ip created here
-  set_fact:
-    created_floating_ip: "{{ item }}"
-  when: "item.description == ip_description"
-  loop: "{{ list_ips_after.floating_ips|list }}"
