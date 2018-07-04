@@ -2,7 +2,21 @@
   hcloud_floating_ip:
     state: list
   register: list_ips
+- name: Reset ip_exists
+  set_fact:
+    ip_exists: false
 - name: Create floating ip
-  debug:
-    msg: "Creating floating ip"
-  when: "{% set found = false %}{% for ip in list_ips.floating_ips %}{% if ip.description == ip_description and not found %}True{% set found = true %}{% endif %}{% endfor %}{% endfor %}{% if not found %}{% endif %}"
+  set_fact:
+    ip_exists: true
+  when: "item.description == ip_description"
+  loop: "{{ list_ips.floating_ips|list }}"
+- name: Create floating ip
+  hcloud_floating_ip:
+    state: present
+    home_location: fsn1
+    type: ipv4
+    description: "{{ ip_description }}"
+  when: "not ip_exists"
+- debug:
+    msg: "Ip already exists, not creating"
+  when: "ip_exists"
