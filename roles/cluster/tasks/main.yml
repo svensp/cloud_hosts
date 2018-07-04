@@ -75,11 +75,11 @@
     state: absent
   when: clusterexists.rc != 0
 - name: "Connect cluster nodes"
-  command: "pcs cluster auth{% for item in groups[clustergroup] %} {{ item }}{% endfor %} -u hacluster -p {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
+  command: "pcs cluster auth{% for item in ansible_play_hosts %} {{ item }}{% endfor %} -u hacluster -p {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   when: clusterexists.rc != 0
   tags: ['cluster', 'create']
 - name: "Setup cluster"
-  command: "pcs cluster setup --force --name {{ clustername }} {% for item in groups[clustergroup] %} {{ item }}{% endfor %}"
+  command: "pcs cluster setup --force --name {{ clustername }} {% for item in ansible_play_hosts %} {{ item }}{% endfor %}"
   run_once: true
   when: clusterexists.rc != 0
   tags: ['cluster', 'create']

@@ -6,7 +6,8 @@
   set_fact:
     ip_exists: false
 - name: Check if ip already exists
-  set_fact: {"{{ register_variable}}:item,ip_exists: true"}
+  set_fact:
+    ip_exists: true
   when: "item.description == ip_description"
   loop: "{{ list_ips.floating_ips|list }}"
 - name: Create floating ip
@@ -20,3 +21,11 @@
 - debug:
     msg: "Ip already exists, not creating"
   when: "ip_exists"
+- name: List floating ips afterwards
+  hcloud_floating_ip:
+    state: list
+  register: list_ips_after
+- name: register created floating ip
+  set_fact: { "{{ register_variable }}":"{{ item }}" }
+  when: "item.description == ip_description"
+  loop: "{{ list_ips_after.floating_ips|list }}"
