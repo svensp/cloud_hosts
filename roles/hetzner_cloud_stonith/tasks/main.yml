@@ -6,7 +6,8 @@
     mode: 0755
   tags: ['cluster', 'stonith', 'hetzner']
 - name: Create STONITH devies
-  serial: 1
+  # TODO: use or simulate serial: 1 for this task. It works fine when creating,
+  # but breaks when changing an existing stonith resource
   pcs_resource:
     name: "STONITH_{{ ansible_hostname }}"
     state: present
