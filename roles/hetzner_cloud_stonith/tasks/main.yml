@@ -6,6 +6,7 @@
     mode: 0755
   tags: ['cluster', 'stonith', 'hetzner']
 - name: Create STONITH devies
+  serial: 1
   pcs_resource:
     name: "STONITH_{{ ansible_hostname }}"
     state: present
