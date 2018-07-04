@@ -15,6 +15,11 @@ logLevel = "INFO"
 
 [accessLog]
 
+[respondingTimeouts]
+readTimeout = "0s"
+writeTimeout = "0s"`
+idleTimeout = "1200s"
+
 [acme]
 email = "{{ email }}"
 
