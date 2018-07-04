@@ -10,6 +10,7 @@
     ip_exists: true
   when: "item.description == ip_description"
   loop: "{{ list_ips.floating_ips|list }}"
+  ignore_errors: true
 - name: Create floating ip
   hcloud_floating_ip:
     state: present
