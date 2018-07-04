@@ -3,7 +3,7 @@
   pcs_resource:
     name: nfs_server
     resource_type: "ocf:heartbeat:nfsserver"
-    options: "nfs_ip={{ nfs_ip }} meta failure-timeout=60"
+    options: "nfs_ip={{ nfs_ip }} meta failure-timeout=10"
   run_once: true
 - name: create nfs constraint to the mountpoint
   pcs_constraint_colocation:

@@ -10,7 +10,7 @@
     name: "STONITH_{{ ansible_hostname }}"
     state: present
     resource_type: "stonith:external/hetzner_cloud"
-    options: "api_token={{ api_token }} hostname={{ ansible_hostname }} meta failure-timeout=60"
+    options: "api_token={{ api_token }} hostname={{ ansible_hostname }} meta failure-timeout=10"
   tags: ['cluster', 'stonith', 'hetzner']
 - name: Force stonith location not on own host
   pcs_constraint_location:

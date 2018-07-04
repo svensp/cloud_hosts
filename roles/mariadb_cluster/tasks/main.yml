@@ -50,7 +50,7 @@
     name: mysql-server
     state: present
     resource_type: "ocf:heartbeat:mysql"
-    options: "datadir=/mnt/mysql meta failure-timeout=60"
+    options: "datadir=/mnt/mysql meta failure-timeout=10"
   run_once: true
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: Create mysql cluster colocation constraint
