@@ -1,2 +1,3 @@
 ip_description: loadbalancer
 register_variable: created_floating_ip
+location: fsn1
