@@ -17,7 +17,7 @@ logLevel = "INFO"
 
 [respondingTimeouts]
 readTimeout = "0s"
-writeTimeout = "0s"`
+writeTimeout = "0s"
 idleTimeout = "1200s"
 
 [acme]
