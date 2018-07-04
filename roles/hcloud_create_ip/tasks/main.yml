@@ -1,0 +1,8 @@
+- name: List floating ips
+  hcloud_floating_ip:
+    state: list
+  register: list_ips
+- name: Create floating ip
+  debug:
+    msg: "Creating floating ip"
+  when: "{% set found = false %}{% for ip in list_ips.floating_ips %}{% if ip.description == ip_description and not found %}True{% set found = true %}{% endif %}{% endfor %}{% endfor %}{% if not found %}{% endif %}"
