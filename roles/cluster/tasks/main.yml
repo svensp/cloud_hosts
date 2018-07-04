@@ -10,8 +10,8 @@
   - pacemaker-cli-utils
   - libxml2-utils
   tags: ['apt', 'cluster']
-- name: "Check if cluster.ini exists"
-  command: "test -f cluster.ini"
+- name: "Check if cluster ini file exists"
+  command: "test -f {{ ini_file }}"
   delegate_to: localhost
   register: cluster_ini_exists
   run_once: true
@@ -20,18 +20,18 @@
   ignore_errors: true
   tags: ['cluster', 'cluster-ini']
 - name: Create cluster.ini
-  shell: "(echo '[{{ ini_section }}]'; echo -n 'password=' ; cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32}) > cluster.ini"
+  shell: "(echo '[{{ ini_section }}]'; echo -n 'password=' ; cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32}) > {{ ini_file }}"
   delegate_to: localhost
   when: "cluster_ini_exists.rc != 0"
   tags: ['cluster', 'cluster-ini']
 - name: Password debug
   debug:
-    msg: "Password: {{ lookup('ini', 'password section='+ini_section+' file=cluster.ini') }}"
+    msg: "Password: {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   delegate_to: localhost
   tags: ['cluster', 'cluster-ini']
 - name: Password hash debug
   debug:
-    msg: "Password Hash: {{ lookup('ini', 'password section='+ini_section+' file=cluster.ini') | hash('sha512') }}"
+    msg: "Password Hash: {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) | hash('sha512') }}"
   delegate_to: localhost
   tags: ['cluster', 'cluster-ini']
 - name: Start pcsd
