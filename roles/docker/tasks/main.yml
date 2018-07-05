@@ -9,6 +9,8 @@
     - curl
     - gnupg2
     - software-properties-common
+    # python-docker is not necessary here, but installs the requirements to install `docker` via pip
+    - python-docker
     - python-pip
   tags: ['docker', 'apt']
 - name: Create /etc/docker/
@@ -38,7 +40,7 @@
     name: docker-ce={{ docker_version }}.*
     state: present
   tags: ['docker']
-- name: install docker python binding
+- name: install docker python binding because docker-py(python-docker package) does not provide auto_remove
   pip:
     name: docker
     state: present
