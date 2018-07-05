@@ -9,6 +9,8 @@
   - pcs
   - pacemaker-cli-utils
   - libxml2-utils
+  environment:
+    RUNLEVEL: 1
   tags: ['apt', 'cluster']
 - name: "Check if cluster ini file exists"
   command: "test -f {{ ini_file }}"

@@ -17,7 +17,6 @@
     home_location: "{{ location }}"
     type: ipv4
     description: "{{ ip_description }}"
-  register: "{{ register_variable }}"
   when: "not ip_exists"
 - debug:
     msg: "Ip already exists, not creating"
