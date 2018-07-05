@@ -21,6 +21,14 @@
   notify: Cluster password created
   ignore_errors: true
   tags: ['cluster', 'cluster-ini']
+- name: Create cluster.ini from variable
+  copy:
+    dest: "{{ ini_file }}"
+    content: |
+      [{{ ini_section }}]
+      password={{ cluster_user_password }}
+  delegate_to: localhost
+  when: "cluster_ini_exists.rc != 0 and cluster_user_password is defined and cluster_user_password != ''"
 - name: Create cluster.ini
   shell: "(echo '[{{ ini_section }}]'; echo -n 'password=' ; cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32}) > {{ ini_file }}"
   delegate_to: localhost

@@ -1,4 +1,3 @@
-clustergroup: all
 ini_file: cluster.ini
 ini_section: pacemaker
 clustername: cmdcluster
