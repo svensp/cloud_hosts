@@ -9,6 +9,7 @@
     - curl
     - gnupg2
     - software-properties-common
+    - python-pip
   tags: ['docker', 'apt']
 - name: Create /etc/docker/
   file:
@@ -38,6 +39,6 @@
     state: present
   tags: ['docker']
 - name: install docker python binding
-  apt:
-    name: python-docker
+  pip:
+    name: docker
     state: present
