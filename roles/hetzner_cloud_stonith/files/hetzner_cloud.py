@@ -2,6 +2,7 @@
 
 import os
 import sys
+from lxml import etree as Et
 
 def OCfErrors:
     notImplemented = 1
@@ -15,7 +16,23 @@ def OcfApi:
         converted_name = name.replace('-','_')
         os.environ.get('OCF_RESKEY_CRM_meta_'+converted_name)
 
-def OcfParameter
+def OcfPopulater
+    def init(self):
+        self.api = OcfApi()
+    def populate(self, resource)
+        for resource in resource.getParameters():
+            value = self.api.variable( resource.getName() )
+            if not value:
+                value = resouce.getDefault()
+            resource.set(value)
+
+def OcfAgent:
+    def init(self, name, version):
+        self.name = name
+        self.version  = version
+        self.parameters = []
+
+def OcfParameter:
     def init(self, name, default=''):
         self.name = name
         self.default = default
@@ -28,17 +45,42 @@ def OcfParameter
     def default(self):
         return self.default
 
-def StonithAgent
+def StonithAgent:
     def init(self):
-        self.api = OcfApi()
-
-    def metaData(self):
+        self.populater = OcfPopulater()
 
     def notImplemented(self):
         return OCfErrors.notImplemented
 
-    def validate(self):
-        # TODO: implement
+    def metaData(self, resource):
+        root = ET.Element('resource-agent')
+        root.set('name', resource.name)
+        root.set('version', resource.version)
+        version = ET.SubElement(root, 'version')
+        version.text = resource.version
+        shortdesc = ET.SubElement(root, 'shortdesc')
+        shortdesc.text = resource.description.short
+        longdesc = ET.SubElement(root, 'longdesc')
+        longdesc.text = resource.description.long
+
+        tree = Et.ElementTree(root)
+        print ET.tostring(tree, encoding="UTF-8",
+                     xml_declaration=True,
+                     pretty_print=True,
+                     doctype='<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">'))
+
+    def validate(self, resource):
+
+        self.populater.populate(resource)
+
+        for item in resource.getParameters():
+            item.validate()
+            
+        try:
+            resource.validate()
+        except AttributeError:
+
+        return 0 
 
     def run(self, resource, action):
         actions = {}
@@ -67,7 +109,5 @@ def StonithAgent
 
         return actions[action]()
 
-def HCloudStonith
-
-application = HCloudStonith()
+application = StonithAgent()
 return application.run();
