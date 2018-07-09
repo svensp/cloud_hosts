@@ -20,17 +20,18 @@ def OcfPopulater
     def init(self):
         self.api = OcfApi()
     def populate(self, resource)
-        for resource in resource.getParameters():
-            value = self.api.variable( resource.getName() )
+        for parameter in resource.getParameters():
+            value = self.api.variable( parameter.getName() )
             if not value:
-                value = resouce.getDefault()
-            resource.set(value)
+                value = parameter.getDefault()
+            parameter.set(value)
 
 def OcfAgent:
     def init(self, name, version):
         self.name = name
         self.version  = version
         self.parameters = []
+        self.languages = []
 
 def OcfParameter:
     def init(self, name, default=''):
@@ -62,6 +63,39 @@ def StonithAgent:
         shortdesc.text = resource.description.short
         longdesc = ET.SubElement(root, 'longdesc')
         longdesc.text = resource.description.long
+            
+        parametersNode = ET.SubElement(root, 'parameters')
+        for parameter in resource.getParameters():
+            parameterNode = ET.SubElement(parametersNode, 'parameter')
+            parameterNode.set('name', parameter.getName())
+            content = ET.SubElement(parameterNode, 'content')
+            content.set('type', parameter.getType())
+            for language in parameter.getLanguages():
+                longDesc = ET.SubElement(parameterNode, 'longdesc')
+                longDesc.text = language.getLongDescrition()
+                ShortDesc = ET.SubElement(parameterNode, 'shortdesc')
+
+            parameterNode.set('unique', '0')
+            try:
+                if parameter.isUnique():
+                    parameterNode.set('unique', '1')
+            except AttributeError:
+
+            parameterNode.set('required', '0')
+            try:
+                if parameterNode.isRequired():
+                    parameterNode.set('required', '1')
+            except AttributeError:
+        actions = ['start', 'stop', 'monitor', 'meta-data', 'validate-all'
+                'reload', 'migrate_to', 'migrate_from', 'promote', 'demote']
+        for action in actions:
+            try:
+                resource.action
+            except AttributeError:
+                # Do nothing
+                
+            
+                    
 
         tree = Et.ElementTree(root)
         print ET.tostring(tree, encoding="UTF-8",
