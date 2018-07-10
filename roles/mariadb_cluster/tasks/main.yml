@@ -45,6 +45,11 @@
   args:
     chdir: "{{ data_dir }}"
   when: mounted and ( datadir_mounted.rc == 0 ) and (db_files.matched|int == 0)
+- name: Create /etc/my.cnf
+  template:
+    src: my.cnf
+    dest: /etc/my.cnf
+  tags: ['mariadb', 'cluster', 'mariadb_cluster']
 - name: Create mysql cluster resource
   pcs_resource:
     name: mysql-server

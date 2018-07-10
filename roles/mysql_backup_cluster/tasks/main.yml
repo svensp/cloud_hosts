@@ -1,9 +1,4 @@
 ---
-- name: Create /etc/my.cnf
-  template:
-    src: my.cnf
-    dest: /etc/my.cnf
-  tags: ['mysql_backup_cluster']
 - name: Create mysql_backup crontab resource
   pcs_resource:
     name: "{{ resource.name }}"

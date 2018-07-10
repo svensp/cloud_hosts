@@ -1,4 +1,3 @@
-max_connections: 151
 resource: 
   name: mysql-backup
   parent: mysql-server

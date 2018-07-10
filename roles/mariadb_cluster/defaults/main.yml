@@ -1,2 +1,3 @@
+max_connections: 151
 mounted: true
 data_dir: /mnt/mysql
