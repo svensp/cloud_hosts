@@ -26,10 +26,10 @@ class OcfApi:
     def action(self):
         return sys.argv[1]
     def variable(self, name):
-        os.environ.get('OCF_RESKEY_'+name)
+        return os.environ.get('OCF_RESKEY_'+name)
     def meta(self, name):
         converted_name = name.replace('-','_')
-        os.environ.get('OCF_RESKEY_CRM_meta_'+converted_name)
+        return os.environ.get('OCF_RESKEY_CRM_meta_'+converted_name)
 
 class OcfPopulater:
     def __init__(self):
@@ -39,8 +39,12 @@ class OcfPopulater:
         for parameter in resource.getParameters():
             value = self.api.variable( parameter.getName() )
             if parameter.isRequired():
-                assert not value == None
-                assert not value == ''
+                try:
+                    assert not value == None
+                    assert not value == ''
+                except AssertionError:
+                    print "Error: Missing parameter "+parameter.getName()
+                    raise
             if not value:
                 value = parameter.getDefault()
                 
