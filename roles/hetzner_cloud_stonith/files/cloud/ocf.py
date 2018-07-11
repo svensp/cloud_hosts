@@ -7,10 +7,9 @@
 
 import os
 import sys
-from lxml import etree as Et
-import hetznercloud
+from lxml import etree as ET
 
-class OCfReturnCodes:
+class ReturnCodes:
     success = 0
     genericError = 1
     invalidArguments = 2
@@ -22,8 +21,9 @@ class OCfReturnCodes:
     isRunningMaster = 8
     isFailedMaster = 9
 
-class OcfApi:
+class Api:
     def action(self):
+        assert 1 < len(sys.argv)
         return sys.argv[1]
     def variable(self, name):
         return os.environ.get('OCF_RESKEY_'+name)
@@ -31,9 +31,9 @@ class OcfApi:
         converted_name = name.replace('-','_')
         return os.environ.get('OCF_RESKEY_CRM_meta_'+converted_name)
 
-class OcfPopulater:
+class Populater:
     def __init__(self):
-        self.api = OcfApi()
+        self.api = Api()
 
     def populate(self, resource):
         for parameter in resource.getParameters():
@@ -50,21 +50,22 @@ class OcfPopulater:
                 
             parameter.set(value)
 
-class OcfAgent:
+class Agent:
     def __init__(self, name, version):
         self.name = name
         self.version  = version
         self.parameters = []
         self.languages = []
 
-class OcfParameter:
-    def __init__(self, name, shortDescription='', description='', default='', unique=False, required=False):
+class Parameter:
+    def __init__(self, name, shortDescription='', description='', default='', type='string', unique=False, required=False):
         self.name = name
         self.default = default
         self.shortDescription = shortDescription
         self.description = description
         self.unique = unique
         self.required = required
+        self.type = type
 
     def set(self, value):
         self.value = value
@@ -78,28 +79,32 @@ class OcfParameter:
         return self.required
     def isUnique(self):
         return self.unique
-    def getShortDescription():
+    def getShortDescription(self):
         return self.shortDescription
-    def getDescription():
-        return self.getDescription
+    def getDescription(self):
+        return self.description
+    def getType(self):
+        return self.type
 
-class ResourceAgent:
+class AgentRunner:
     def __init__(self):
-        self.populater = OcfPopulater()
+        self.populater = Populater()
 
     def notImplemented(self):
         return OCfErrors.notImplemented
 
     def metaData(self, resource):
         root = ET.Element('resource-agent')
-        root.set('name', resource.name)
-        root.set('version', resource.version)
+        root.set('name', resource.getName())
+        root.set('version', resource.getVersion())
         version = ET.SubElement(root, 'version')
-        version.text = resource.version
+        version.text = resource.getVersion()
         shortdesc = ET.SubElement(root, 'shortdesc')
-        shortdesc.text = resource.shortDescription
+        shortdesc.text = resource.getShortDescription()
+        shortdesc.set('lang', 'en')
         longdesc = ET.SubElement(root, 'longdesc')
-        longdesc.text = resource.longDescription
+        longdesc.text = resource.getDescription()
+        longdesc.set('lang', 'en')
             
         parametersNode = ET.SubElement(root, 'parameters')
         for parameter in resource.getParameters():
@@ -109,9 +114,11 @@ class ResourceAgent:
             content.set('type', parameter.getType())
 
             longDesc = ET.SubElement(parameterNode, 'longdesc')
-            longDesc.text = resource.getLongDescription()
-            ShortDesc = ET.SubElement(parameterNode, 'shortdesc')
-            ShortDesc = resource.getShortDescription()
+            longDesc.text = parameter.getDescription()
+            longDesc.set('lang', 'en')
+            shortDesc = ET.SubElement(parameterNode, 'shortdesc')
+            shortDesc.text = parameter.getShortDescription()
+            shortDesc.set('lang', 'en')
 
             parameterNode.set('unique', '0')
             try:
@@ -129,13 +136,17 @@ class ResourceAgent:
 
         actions = ['start', 'stop', 'monitor', 'meta-data', 'validate-all'
                 'reload', 'migrate_to', 'migrate_from', 'promote', 'demote']
+        actionsNode = ET.SubElement(root)
         for action in actions:
             try:
                 resource.action
+                actionNode = ET.SubElement(actionsNode)
+                for k,v in resource.getHints(action):
+                    actionNode.set(k, v)
             except AttributeError:
                 pass
 
-        tree = Et.ElementTree(root)
+        tree = ET.ElementTree(root)
         print ET.tostring(tree, encoding="UTF-8",
                      xml_declaration=True,
                      pretty_print=True,
@@ -189,47 +200,21 @@ class ResourceAgent:
         except KeyError:
             return OCfReturnCodes.isNotImplemented
 
-class HCloudFloatingIp:
-    def __init__(self):
-        self.parameters = [
-            OcfParameter('floating_ip', shortDescription='Hetner Cloud Ip-Address x.x.x.x' ,
-                description='''
-                The Hetzner Cloud Floating Ip Address which this resource should manage.
-                Note that this does not mean the Id of the Ip-Address but the Address
-                itself.
-                ''',
-                required=True, unique=True),
-            OcfParameter('htoken', shortDescription='Hetner Cloud api token' ,
-                description='''
-                The Hetzner Cloud api token with which the ip address can be managed.
+class ResourceAgent:
+    def __init__(self, name, version, shortDescription, description):
+        self.name = name
+        self.version = version
+        self.shortDescription = shortDescription
+        self.description = description
+        self.hints = []
 
-                You can create this in the Hetner Cloud Console. Select the project
-                which contains your Ip-Address, then select `Access` on the leftside menu
-                Activate the second tab `Api Tokens` and create a new token.
-                ''',
-                required=True, unique=False)
-        ]
-    def getParameters(self):
-        return self.parameters
-
-    def start(self):
-        print 'Start!'
-
-    def stop(self):
-        print 'Stop!'
-
-    def monitor(self):
-        print 'Monitor!'
-
-if __name__ == '__main__':
-    application = ResourceAgent()
-    resource = HCloudFloatingIp()
-    api = OcfApi()
-
-    try:
-        code = application.run(resource, api.action()) 
-    except AssertionError:
-        code = OCfReturnCodes.isMissconfigured
-    sys.exit( code )
-
-sys.exit( OCfReturnCodes.genericError )
+    def getName(self):
+        return self.name
+    def getVersion(self):
+        return self.version
+    def getShortDescription(self):
+        return self.shortDescription
+    def getDescription(self):
+        return self.description
+    def setHint(self, action, hint, value):
+        self.hints[action].update({hint, value})
