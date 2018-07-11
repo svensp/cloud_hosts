@@ -32,27 +32,29 @@ class OcfApi:
         os.environ.get('OCF_RESKEY_CRM_meta_'+converted_name)
 
 class OcfPopulater:
-    def init(self):
+    def __init__(self):
         self.api = OcfApi()
+
     def populate(self, resource):
         for parameter in resource.getParameters():
-            value = self.api.getVariable( parameter.getName() )
-            if resource.isRequired():
-                assert value != ''
+            value = self.api.variable( parameter.getName() )
+            if parameter.isRequired():
+                assert not value == None
+                assert not value == ''
             if not value:
                 value = parameter.getDefault()
                 
             parameter.set(value)
 
 class OcfAgent:
-    def init(self, name, version):
+    def __init__(self, name, version):
         self.name = name
         self.version  = version
         self.parameters = []
         self.languages = []
 
 class OcfParameter:
-    def init(self, name, shortDescription='', description='', default='', unique=False, required=False):
+    def __init__(self, name, shortDescription='', description='', default='', unique=False, required=False):
         self.name = name
         self.default = default
         self.shortDescription = shortDescription
@@ -60,9 +62,13 @@ class OcfParameter:
         self.unique = unique
         self.required = required
 
-    def name(self):
+    def set(self, value):
+        self.value = value
+    def get(self):
+        return self.value
+    def getName(self):
         return self.name
-    def default(self):
+    def getDefault(self):
         return self.default
     def isRequired(self):
         return self.required
@@ -74,7 +80,7 @@ class OcfParameter:
         return self.getDescription
 
 class ResourceAgent:
-    def init(self):
+    def __init__(self):
         self.populater = OcfPopulater()
 
     def notImplemented(self):
@@ -132,7 +138,6 @@ class ResourceAgent:
                      doctype='<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">')
 
     def validate(self, resource):
-
         self.populater.populate(resource)
 
         for item in resource.getParameters():
@@ -181,17 +186,17 @@ class ResourceAgent:
             return OCfReturnCodes.isNotImplemented
 
 class HCloudFloatingIp:
-    def init(self):
+    def __init__(self):
         self.parameters = [
-            OcfParameter('floating_ip', overview='Hetner Cloud Ip-Address x.x.x.x' ,
-                descrpition='''
+            OcfParameter('floating_ip', shortDescription='Hetner Cloud Ip-Address x.x.x.x' ,
+                description='''
                 The Hetzner Cloud Floating Ip Address which this resource should manage.
                 Note that this does not mean the Id of the Ip-Address but the Address
                 itself.
                 ''',
                 required=True, unique=True),
-            OcfParameter('htoken', overview='Hetner Cloud api token' ,
-                descrpition='''
+            OcfParameter('htoken', shortDescription='Hetner Cloud api token' ,
+                description='''
                 The Hetzner Cloud api token with which the ip address can be managed.
 
                 You can create this in the Hetner Cloud Console. Select the project
@@ -212,12 +217,15 @@ class HCloudFloatingIp:
     def monitor(self):
         print 'Monitor!'
 
-application = ResourceAgent()
-resource = HCloudFloatingIp()
-api = OcfApi()
+if __name__ == '__main__':
+    application = ResourceAgent()
+    resource = HCloudFloatingIp()
+    api = OcfApi()
 
-try:
-    code = application.run(resource, api.action()) 
-except AssertionError:
-    code = OCfReturnCodes.isMissconfigured
-sys.exit( code )
+    try:
+        code = application.run(resource, api.action()) 
+    except AssertionError:
+        code = OCfReturnCodes.isMissconfigured
+    sys.exit( code )
+
+sys.exit( OCfReturnCodes.genericError )
