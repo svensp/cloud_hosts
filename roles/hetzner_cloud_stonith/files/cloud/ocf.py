@@ -121,28 +121,24 @@ class AgentRunner:
             shortDesc.set('lang', 'en')
 
             parameterNode.set('unique', '0')
-            try:
-                if parameter.isUnique():
-                    parameterNode.set('unique', '1')
-            except AttributeError:
-                pass
+            if parameter.isUnique():
+                parameterNode.set('unique', '1')
 
             parameterNode.set('required', '0')
-            try:
-                if parameterNode.isRequired():
-                    parameterNode.set('required', '1')
-            except AttributeError:
-                pass
+            if parameter.isRequired():
+                parameterNode.set('required', '1')
 
         actions = ['start', 'stop', 'monitor', 'meta-data', 'validate-all'
                 'reload', 'migrate_to', 'migrate_from', 'promote', 'demote']
-        actionsNode = ET.SubElement(root)
+        actionsNode = ET.SubElement(root, 'actions')
         for action in actions:
             try:
-                resource.action
-                actionNode = ET.SubElement(actionsNode)
-                for k,v in resource.getHints(action):
-                    actionNode.set(k, v)
+                getattr(resource,action)
+                actionNode = ET.SubElement(actionsNode, 'action')
+                actionNode.set('name', action)
+                hints = resource.getHints(action)
+                for k in hints:
+                    actionNode.set(k, str(hints[k]) )
             except AttributeError:
                 pass
 
@@ -206,7 +202,7 @@ class ResourceAgent:
         self.version = version
         self.shortDescription = shortDescription
         self.description = description
-        self.hints = []
+        self.hints = {}
 
     def getName(self):
         return self.name
@@ -217,4 +213,17 @@ class ResourceAgent:
     def getDescription(self):
         return self.description
     def setHint(self, action, hint, value):
-        self.hints[action].update({hint, value})
+        try:
+            self.hints[action].update({hint: value})
+        except KeyError:
+            self.hints[action] = {hint: value}
+    def setHints(self, action, hints):
+        try:
+            self.hints[action].update(hints)
+        except KeyError:
+            self.hints[action] = hints
+    def getHints(self, action):
+        try:
+            return self.hints[action]
+        except KeyError:
+            return {}

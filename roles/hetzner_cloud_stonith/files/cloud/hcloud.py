@@ -45,6 +45,7 @@ class FloatingIp(ocf.ResourceAgent):
                 self.floatingIp,
                 self.apiToken
         ]
+        self.setHint('start', 'timeout', '10')
 
     def getParameters(self):
         return self.parameters
