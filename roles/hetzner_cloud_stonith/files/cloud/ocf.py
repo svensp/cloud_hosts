@@ -49,6 +49,10 @@ class Populater:
                 value = parameter.getDefault()
                 
             parameter.set(value)
+        try:
+            resource.populated()
+        except AttributeError:
+            pass
 
 class Agent:
     def __init__(self, name, version):

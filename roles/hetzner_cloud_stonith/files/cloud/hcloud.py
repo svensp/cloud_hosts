@@ -7,9 +7,49 @@
 
 from hetznercloud import HetznerCloudClientConfiguration, HetznerCloudClient
 import ocf
+import socket
+import ifaddr
+
+#
+# The HostFinder searches for the hetzner cloud api server which manages the
+# machine this script is running on
+#
+# Implementation:
+#   An api server is matched if the ipv4 address listed in the api is present
+#   on this machine
+#  
+# Possible alternatives:
+# Match hostname to servername
+#
+#
+class MyHostFinder:
+    def find(self, client):
+        my_ips = []
+        adapters = ifaddr.get_adapters()
+        for adapter in adapters:
+            for ip in adapter.ips:
+                my_ips.append(ip.ip)
+        servers = client.servers().get_all()
+        for server in servers:
+            if server.public_net_ipv4 in  my_ips:
+                return server
+                
+            
+        print my_ips
+        raise EnvironmentError('Host not found in hcloud api.')
+
+class IpFinder:
+    def find(self, client, address)
+         for floatingIp in client.floating_ips().get_all():
+             if floatingIp.ip== address:
+                 return floatingIp
+        raise EnvironmentError('Floating ip not found')
 
 class FloatingIp(ocf.ResourceAgent):
     def __init__(self):
+        self.hostFinder = MyHostFinder()
+        self.ipFinder = MyIpFinder()
+
         ocf.ResourceAgent.__init__(self, 'floating_ip', '0.1.0', 'Manage Hetzner Cloud Floating Ips',
                 '''
                 This resource agent uses the hetzner cloud api and to manage a floating ip address.
@@ -55,8 +95,9 @@ class FloatingIp(ocf.ResourceAgent):
         client = HetznerCloudClient(configuration)
         return client
 
-
     def start(self):
+        client = self.makeClient()
+        server = self.hostFinder.find(client)
         print 'Start!'
 
     def stop(self):
