@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python3
 #
 #   Resource Agent for managing hetzner cloud ips
 #
@@ -6,6 +6,8 @@
 #   (c) 2018Sven Speckmaier
 
 from hetznercloud import HetznerCloudClientConfiguration, HetznerCloudClient
+from hetznercloud.servers import HetznerCloudServer
+from hetznercloud.floating_ips import HetznerCloudFloatingIp
 import ocf
 import socket
 import ifaddr
@@ -23,7 +25,7 @@ import ifaddr
 #
 #
 class MyHostFinder:
-    def find(self, client):
+    def find(self, client) -> HetznerCloudServer:
         my_ips = []
         adapters = ifaddr.get_adapters()
         for adapter in adapters:
@@ -33,22 +35,19 @@ class MyHostFinder:
         for server in servers:
             if server.public_net_ipv4 in  my_ips:
                 return server
-                
-            
-        print my_ips
         raise EnvironmentError('Host not found in hcloud api.')
 
 class IpFinder:
-    def find(self, client, address)
+     def find(self, client, address) -> HetznerCloudFloatingIp:
          for floatingIp in client.floating_ips().get_all():
-             if floatingIp.ip== address:
+             if floatingIp.ip == address:
                  return floatingIp
-        raise EnvironmentError('Floating ip not found')
+         raise EnvironmentError('Floating ip not found.')
 
 class FloatingIp(ocf.ResourceAgent):
     def __init__(self):
         self.hostFinder = MyHostFinder()
-        self.ipFinder = MyIpFinder()
+        self.ipFinder = IpFinder()
 
         ocf.ResourceAgent.__init__(self, 'floating_ip', '0.1.0', 'Manage Hetzner Cloud Floating Ips',
                 '''
@@ -90,18 +89,18 @@ class FloatingIp(ocf.ResourceAgent):
     def getParameters(self):
         return self.parameters
 
-    def makeClient(self):
+    def populated(self):
         configuration = HetznerCloudClientConfiguration().with_api_key( self.apiToken.get() ).with_api_version(1)
-        client = HetznerCloudClient(configuration)
-        return client
+        self.client = HetznerCloudClient(configuration)
 
     def start(self):
-        client = self.makeClient()
-        server = self.hostFinder.find(client)
-        print 'Start!'
+        server = self.hostFinder.find(self.client)
+        ip = self.ipFinder.find(self.client)
+        print('Start!')
 
     def stop(self):
-        print 'Stop!'
+        return ocf.ReturnCodes.success
 
     def monitor(self):
-        print 'Monitor!'
+        server = self.hostFinder.find(self.client)
+        ip = self.ipFinder.find(self.client)

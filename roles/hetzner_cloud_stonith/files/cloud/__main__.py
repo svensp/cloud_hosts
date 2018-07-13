@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python3
 #
 #   Resource Agent for managing hetzner cloud ips
 #
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     try:
         action = api.action()
     except AssertionError:
-        print "Error: Missing action"
+        print("Error: Missing action")
         sys.exit( ocf.ReturnCodes.invalidArguments )
 
 

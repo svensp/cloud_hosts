@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python3
 #
 #   Resource Agent for managing hetzner cloud ips
 #
@@ -43,7 +43,7 @@ class Populater:
                     assert not value == None
                     assert not value == ''
                 except AssertionError:
-                    print "Error: Missing parameter "+parameter.getName()
+                    print( "Error: Missing parameter "+parameter.getName() )
                     raise
             if not value:
                 value = parameter.getDefault()
@@ -147,10 +147,10 @@ class AgentRunner:
                 pass
 
         tree = ET.ElementTree(root)
-        print ET.tostring(tree, encoding="UTF-8",
+        print( ET.tostring(tree, encoding="UTF-8",
                      xml_declaration=True,
                      pretty_print=True,
-                     doctype='<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">')
+                     doctype='<!DOCTYPE resource-agent SYSTEM "ra-api-1.dtd">'))
 
     def validate(self, resource):
         self.populater.populate(resource)
