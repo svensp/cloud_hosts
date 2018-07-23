@@ -4,6 +4,17 @@
     name: python3-lxml
     state: present
   tags: ['cluster', 'stonith', 'hetzner']
+- name: python3-pip
+  apt: 
+    name: python3-pip
+    state: present
+  tags: ['cluster', 'stonith', 'hetzner']
+- name:
+  pip:
+    executable: pip3
+    name: hetznercloud
+    state: present
+  tags: ['cluster', 'stonith', 'hetzner']
 - name: Install Hetzner Cloud STONITH resource
   copy: 
     src: hetzner_cloud
