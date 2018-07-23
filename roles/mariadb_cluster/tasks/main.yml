@@ -143,3 +143,9 @@
     resource2: mysql-server-logrotate
   run_once: true
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-constraint', 'pcs-order']
+- name: Set correct socket in /etc/mysql/debian.cnf
+  replace:
+    path: /etc/mysql/debian.cnf
+    regexp: '(socket.+=).+'
+    replace: '\1 /var/lib/mysqld/mysqld.sock'
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-constraint', 'pcs-order']
