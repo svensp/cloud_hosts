@@ -10,9 +10,22 @@
   - git
   - unattended-upgrades
   - apt-listchanges
+  - logrotate
 - name: Copy unattended-upgrades config
   template:
     src: 50unattended-upgrades
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    mode: 0644
+  tags: [ 'tools', 'updates' ]
+- name: Copy logrotate cron file to /etc/cron.hourly
+  template:
+    src: logrotate
+    dest: /etc/cron.hourly/logrotate
+    mode: 0644
+  tags: [ 'tools', 'updates' ]
+- name: Copy logrotate rsyslog config
+  template:
+    src: rsyslog
+    dest: /etc/logrotate.d/rsyslog
     mode: 0644
   tags: [ 'tools', 'updates' ]
