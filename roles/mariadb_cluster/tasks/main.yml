@@ -97,3 +97,49 @@
   with_items: "{{ users }}"
   when: "mysqld_running.rc == 0"
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'user']
+- name: Create /etc/logrotate.cluster
+  file:
+    path: /etc/logrotate.cluster
+    state: directory
+    mode: 0755
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'apt']
+- name: Copy mysql-server to /etc/logrotate.cluster/
+  copy:
+    src: mysql-server
+    dest: /etc/logrotate.cluster/mysql-server
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'apt']
+- name: Check if /etc/logrotate.d/mysql-server exists
+  stat:
+    follow: no
+    path: /etc/logrotate.d/mysql-server
+    get_mime: no
+    get_attributes: no
+    get_checksum: no
+  register: logrotate_mysql_server
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'apt']
+- name: Remove /etc/logrotate.d/mysql-server if it is not a symlink
+  file:
+    path: /etc/logrotate.d/mysql-server
+    state: absent
+  when: "logrotate_mysql_server.stat.islnk is defined and logrotate_mysql_server.stat.islnk == False"
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'apt']
+- name: Create logrotate resource
+  pcs_resource:
+    name: mysql-server-logrotate
+    state: present
+    resource_type: "ocf:heartbeat:symlink"
+    options: "link=/etc/logrotate.d/mysql-server target=/etc/logrotate.cluster/mysql-server meta failure-timeout=10"
+  run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
+- name: Create logrotate cluster colocation constraint
+  pcs_constraint_colocation:
+    resource1: mysql-server-logrotate
+    resource2: mysql-server
+  run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-constraint', 'pcs-colocation']
+- name: Create logrotate cluster order constraint
+  pcs_constraint_order:
+    resource1: mysql-server
+    resource2: mysql-server-logrotate
+  run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-constraint', 'pcs-order']
