@@ -57,7 +57,7 @@
 - name: Create drbd colocation
   pcs_constraint_colocation:
     resource1: "{{ item.name }}-master"
-    resource2: "VirtualIP_{{ item.colocation_ip }}"
+    resource2: "{{ vip_prefix }}{{ item.colocation_ip }}"
     resource1_role: Master
     state: present
   run_once: true
