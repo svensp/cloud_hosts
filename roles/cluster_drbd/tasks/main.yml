@@ -5,7 +5,7 @@
   with_items:
     - devices
   tags: ['cluster_drbd']
-- name: Create monutpoints
+- name: Create mountpoints
   file:
     path: "{{ item.mnt }}"
     state: directory
