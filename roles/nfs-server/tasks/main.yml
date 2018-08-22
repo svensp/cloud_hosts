@@ -10,7 +10,7 @@
     path: /etc/default/nfs-kernel-server
     line: 'RPCNFSDOPTS="--grace-time {{ grace_timeout }} --lease-time {{ lease_timeout }}"'
   tags: ['nfs-server', 'nfs-server-grace']
-- name: Set nfsdargs grace-time and lease-time
+- name: Set nfs thread count
   lineinfile:
     regexp: 'RPCNFSDCOUNT=.*'
     path: /etc/default/nfs-kernel-server
