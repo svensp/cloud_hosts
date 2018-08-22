@@ -1,0 +1,1 @@
+init_script: '/etc/init.d/nfs-kernel-server'

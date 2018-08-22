@@ -3,15 +3,18 @@
   pcs_resource:
     name: nfs_server
     resource_type: "ocf:heartbeat:nfsserver"
-    options: "nfs_ip={{ nfs_ip }} meta failure-timeout=10"
+    options: "nfs_ip={{ nfs_ip }} {% if info_dir is defined %}nfs_shared_infodir={{ info_dir }}{% endif %} nfs_init_script={{ init_script }} meta failure-timeout=10"
   run_once: true
+  tags: ['nfs-server', 'nfs-server-cluster']
 - name: create nfs constraint to the mountpoint
   pcs_constraint_colocation:
     resource1: nfs_server
     resource2: "{{ nfs_mount }}"
   run_once: true
+  tags: ['nfs-server', 'nfs-server-cluster']
 - name: create nfs constraint to start after the mountpoint
   pcs_constraint_order:
     resource1: "{{ nfs_mount }}"
     resource2: nfs_server
   run_once: true
+  tags: ['nfs-server', 'nfs-server-cluster']
