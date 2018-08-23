@@ -1,2 +1,7 @@
 version: stable
 image: rancher/server
+http_port: 80
+https_port: 443
+challenge: http
+traefik_envs: []
+extra_ports: []

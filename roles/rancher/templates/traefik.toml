@@ -2,12 +2,19 @@ defaultEntryPoints = ["http", "https"]
 
 [entryPoints]
   [entryPoints.http]
-  address = ":80"
+  address = ":{{ http_port }}"
 	  [entryPoints.http.redirect]
 		 entryPoint = "https"
   [entryPoints.https]
-  address = ":443"
+  address = ":{{ https_port }}"
     [entryPoints.https.tls]
+{% for item in extra_ports %}
+  [entryPoints.{{ item.name}}]
+  address = ":{{ item.port }}"
+	{% if item.tls is defined %}
+    [entryPoints.{{ item.name }}.tls]
+	{% endif %}
+{% endfor %}
 
 logLevel = "INFO"
 
@@ -30,8 +37,14 @@ entryPoint = "https"
 [[acme.domains]]
    main = "{{ url }}"
 
+{% if challenge == "dns" %}
+[acme.dnsChallenge]
+	provider = "{{ dns_provider }}"
+
+{% else %}
 [acme.httpChallenge]
   entryPoint = "http"
+{% endif %}
 
 [file]
 # Backends
