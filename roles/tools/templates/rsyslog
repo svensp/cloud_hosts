@@ -1,5 +1,6 @@
 /var/log/syslog
 {
+	maxsize {{ logfiles_maxsize }}
 	rotate 7
 	daily
 	missingok

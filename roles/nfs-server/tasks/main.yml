@@ -4,6 +4,18 @@
     name: nfs-kernel-server
     state: present
   tags: ['nfs-server']
+- name: Set nfsdargs grace-time and lease-time
+  lineinfile:
+    regexp: 'RPCNFSDOPTS=.*'
+    path: /etc/default/nfs-kernel-server
+    line: 'RPCNFSDOPTS="--grace-time {{ grace_timeout }} --lease-time {{ lease_timeout }}"'
+  tags: ['nfs-server', 'nfs-server-grace']
+- name: Set nfs thread count
+  lineinfile:
+    regexp: 'RPCNFSDCOUNT=.*'
+    path: /etc/default/nfs-kernel-server
+    line: 'RPCNFSDCOUNT="{{ threads }}"'
+  tags: ['nfs-server', 'nfs-server-grace']
 - name: upload /etc/exports
   template:
     src: exports

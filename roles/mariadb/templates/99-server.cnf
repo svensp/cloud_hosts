@@ -41,6 +41,16 @@ myisam_recover_options  = BACKUP
 max_connections        = {{ max_connections }}
 #table_cache            = 64
 #thread_concurrency     = 10
+#
+#
+
+#
+#
+#
+wait_timeout = {{ wait_timeout }}
+interactive_timeout = {{ interactive_timeout }}
+
+
 
 #
 # * Query Cache Configuration
