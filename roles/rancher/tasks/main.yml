@@ -16,7 +16,10 @@
     restart_policy: unless-stopped
     networks:
       - name: rancher
+    env:
+      CATTLE_PROMETHEUS_EXPORTER: "{% if enable_prometheus == true %}true{% else %}false{% endif %}"
     published_ports:
+      - "{{ ansible_default_ipv4.address }}:9108:9108"
       - "{{ ansible_default_ipv4.address }}:9345:9345"
       - "{{ ansible_default_ipv4.address }}:8080:8080"
     command:
@@ -30,7 +33,7 @@
       - "{{ db_username }}"
       - "--db-pass"
       - "{{ db_password }}"
-  tags: ['rancher']
+  tags: ['rancher','rancher-server']
 - name: Create traefik directory
   file:
     path: /etc/traefik

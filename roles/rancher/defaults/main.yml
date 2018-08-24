@@ -5,3 +5,4 @@ https_port: 443
 challenge: http
 traefik_envs: []
 extra_ports: []
+enable_prometheus: false
