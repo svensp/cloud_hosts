@@ -20,6 +20,11 @@
 FLOATING_IP=${OCF_RESKEY_ip}
 API_TOKEN=${OCF_RESKEY_api_token}
 
+# This is used to debug from a host not part of the cluster
+if [ -z "${HOSTNAME}" ] ; then
+	HOSTNAME="$(hostname)"
+fi
+
 #######################################################################
 
 #######################################################################
@@ -30,17 +35,35 @@ ip_init() {
 	FLOATING_IP_ID="$(ip_to_id)"
 }
 
+api_request() {
+	REQUEST_URL="${1}"
+
+	FIRST_REQUEST="true"
+	while ! curl -f -s -H "Authorization: Bearer $API_TOKEN" "${REQUEST_URL}" ; do
+
+		if [ "${FIRST_REQUEST}" = "false" ] ; then
+			sleep 5s
+		fi
+		FIRST_REQUEST="false"
+	done
+
+}
+
 server_id() {
-	if ( curl -f -s -H "Authorization: Bearer $API_TOKEN" \
-		"https://api.hetzner.cloud/v1/servers?name=$(hostname)" | \
-		  python3 -c "import sys, json;
+
+	RESPONSE_DATA="$(api_request "https://api.hetzner.cloud/v1/servers?name=${HOSTNAME}")"
+
+	if python3 -c "import sys, json;
 jsonData = json.load(sys.stdin)
 servers = jsonData['servers']
 if len(servers) < 1:
 	sys.exit(1)
 print(servers[0]['id'])
 sys.exit(0)
-" ) ; then
+" <<RESPONSETEXT
+${RESPONSE_DATA}
+RESPONSETEXT
+	then
 		return 0
 	fi
 
@@ -48,9 +71,10 @@ sys.exit(0)
 }
 
 ip_to_id() {
-	if ( curl -f -s -H "Authorization: Bearer $API_TOKEN" \
-		  https://api.hetzner.cloud/v1/floating_ips | \
-		  python3 -c "import sys, json, socket;
+
+	RESPONSE_DATA="$(api_request "https://api.hetzner.cloud/v1/floating_ips")"
+
+	if python3 -c "import sys, json, socket;
 jsonData = json.load(sys.stdin)
 floatingIps = jsonData['floating_ips']
 for floatingIp in floatingIps:
@@ -58,7 +82,10 @@ for floatingIp in floatingIps:
 		print(floatingIp['id'])
 		sys.exit(0)
 sys.exit(1)
-" ) ; then
+" <<RESPONSETEXT
+${RESPONSE_DATA}
+RESPONSETEXT
+	then
 		return 0
 	fi
 
@@ -66,9 +93,10 @@ sys.exit(1)
 }
 
 ip_served() {
-	if ( curl -f -s -H "Authorization: Bearer $API_TOKEN" \
-		  https://api.hetzner.cloud/v1/floating_ips | \
-		  python3 -c "import sys, json, socket;
+
+	RESPONSE_DATA="$(api_request "https://api.hetzner.cloud/v1/floating_ips")"
+
+	if python3 -c "import sys, json, socket;
 jsonData = json.load(sys.stdin)
 expectedServerId = ${SERVER_ID}
 floatingIps = jsonData['floating_ips']
@@ -82,7 +110,10 @@ for floatingIp in floatingIps:
 			sys.exit(1)
 print('not found')
 sys.exit(2)
-" ) ; then
+" <<RESPONSETEXT
+${RESPONSE_DATA}
+RESPONSETEXT
+   then
 		return 0
 	fi
 
@@ -95,7 +126,7 @@ ip_validate() {
 	check_binary python3
 
 	if [ -z "$SERVER_ID" ] ; then
-		echo "hostname $(hostname) not found in cloud api"
+		echo "hostname ${HOSTNAME} not found in cloud api"
 		exit $OCF_ERR_CONFIGURED
 	fi
 
@@ -134,18 +165,6 @@ ip_stop() {
 	# unassigning the ip address seems to sometimes cause routing problems when
 	# it is assigned again imidiatly afterwards
 	exit ${OCF_SUCCESS}
-
-	if ! ip_served ; then
-		exit $OCF_SUCCESS
-	fi
-
-	while ! ocf_run -q curl -f -s -X POST -H "Content-Type: application/json" -H \
-		"Authorization: Bearer $API_TOKEN" \
-		"https://api.hetzner.cloud/v1/floating_ips/${FLOATING_IP_ID}/actions/unassign"
-	do sleep 1s
-	done
-
-	exit $OCF_SUCCESS
 }
 
 ip_monitor() {
