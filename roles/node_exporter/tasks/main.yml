@@ -1,0 +1,30 @@
+---
+- name: Copy node_exporter executable
+  copy:
+    src: node_exporter
+    dest: /usr/local/sbin/node_exporter
+    mode: 0755
+  tags: ['node-exporter']
+- name: create node_exporter user
+  user:
+    create_home: no
+    name: node_exporter
+    system: yes
+    state: present
+  tags: ['node-exporter']
+- name: Copy node_exporter.service systemd file
+  copy:
+    src: node_exporter.service
+    dest: /etc/systemd/system/node_exporter.service
+    mode: 644
+  tags: ['node-exporter']
+- name: Enable node_exporter systemd service
+  systemd:
+    name: node_exporter
+    enabled: yes
+  tags: ['node-exporter']
+- name: Enable node_exporter systemd service
+  systemd:
+    name: node_exporter
+    state: started
+  tags: ['node-exporter']
