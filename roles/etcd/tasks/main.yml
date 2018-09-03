@@ -1,4 +1,141 @@
 ---
+- name: Create files
+  file:
+    path: "{{ item }}"
+    state: directory
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop:
+    - files
+    - files/etcd
+    - files/etcd/peer
+    - files/etcd/client
+  tags: ['etcd']
+- name: Check if peer ca cert exists
+  stat:
+    path: files/etcd/peer/ca.cert.pem
+  delegate_to: localhost
+  become: false
+  register: peer_cacert
+  run_once: true
+  tags: ['etcd']
+- name: create peer ca cert
+  shell: |
+    openssl genrsa -passout env:PASSWORD -out files/etcd/peer/ca.key.pem  4096
+    openssl req -batch -key files/etcd/peer/ca.key.pem -passout env:PASSWORD \
+      -new -x509 -days 7300 -sha256 -extensions v3_ca \
+      -out files/etcd/peer/ca.crf.pem
+    openssl x509 -out files/etcd/peer/ca.cert.pem -text -in files/etcd/peer/ca.crf.pem
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  when: not peer_cacert.stat.exists
+  run_once: true
+  tags: ['etcd']
+- name: Check if server cert exists
+  stat:
+    path: "files/etcd/peer/{{ ansible_hostname }}.cert.pem"
+  delegate_to: localhost
+  become: false
+  register: peer_servercert
+  tags: ['etcd']
+- name: Create server cert
+  shell: |
+    openssl genrsa -passout env:PASSWORD -out files/etcd/peer/{{ ansible_hostname }}.key.pem  4096
+    openssl req -batch -key files/etcd/peer/{{ ansible_hostname }}.key.pem -passin env:PASSWORD \
+      -new -x509 -days 7300 -sha256 -extensions v3_ca \
+      -out files/etcd/peer/{{ ansible_hostname }}.crf.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ ansible_fqdn }}'
+    openssl x509 -out files/etcd/peer/{{ ansible_hostname }}.cert.pem -text -in files/etcd/peer/{{ ansible_hostname }}.crf.pem
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  when: not peer_servercert.stat.exists
+  tags: ['etcd']
+- name: Check if ca cert exists
+  stat:
+    path: files/etcd/client/ca.cert.pem
+  delegate_to: localhost
+  become: false
+  register: client_cacert
+  run_once: true
+  tags: ['etcd']
+- name: create ca cert
+  shell: |
+    openssl genrsa -passout env:PASSWORD -out files/etcd/client/ca.key.pem  4096
+    openssl req -batch -key files/etcd/client/ca.key.pem -passout env:PASSWORD \
+      -new -x509 -days 7300 -sha256 -extensions v3_ca \
+      -out files/etcd/client/ca.crf.pem
+    openssl x509 -out files/etcd/client/ca.cert.pem -text -in files/etcd/client/ca.crf.pem
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  when: not client_cacert.stat.exists
+  run_once: true
+  tags: ['etcd']
+- name: Check if server cert exists
+  stat:
+    path: "files/etcd/client/{{ ansible_hostname }}.cert.pem"
+  delegate_to: localhost
+  become: false
+  register: client_servercert
+  tags: ['etcd']
+- name: Create server cert
+  shell: |
+    openssl genrsa -passout env:PASSWORD -out files/etcd/client/{{ ansible_hostname }}.key.pem  4096
+    openssl req -batch -key files/etcd/client/{{ ansible_hostname }}.key.pem -passin env:PASSWORD \
+      -new -x509 -days 7300 -sha256 -extensions v3_ca \
+      -out files/etcd/client/{{ ansible_hostname }}.crf.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ ansible_fqdn }}'
+    openssl x509 -out files/etcd/client/{{ ansible_hostname }}.cert.pem -text -in files/etcd/client/{{ ansible_hostname }}.crf.pem
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  when: not client_servercert.stat.exists
+  tags: ['etcd']
+- name: Create /etc/etcd
+  file:
+    path: /etc/etcd
+    mode: 0700
+    state: directory
+  tags: ['etcd']
+- name: copy client cacert
+  copy:
+    src: files/etcd/client/ca.cert.pem
+    dest: /etc/etcd/client.cacert.pem
+  tags: ['etcd']
+- name: copy client server cert
+  copy:
+    src: "files/etcd/client/{{ ansible_hostname }}.cert.pem"
+    dest: /etc/etcd/client.cert.pem
+  tags: ['etcd']
+- name: copy client server key
+  copy:
+    src: "files/etcd/client/{{ ansible_hostname }}.key.pem"
+    dest: /etc/etcd/client.key.pem
+    mode: 0600
+  tags: ['etcd']
+- name: copy peer cacert
+  copy:
+    src: files/etcd/peer/ca.cert.pem
+    dest: /etc/etcd/peer.cacert.pem
+  tags: ['etcd']
+- name: copy peer server cert
+  copy:
+    src: "files/etcd/peer/{{ ansible_hostname }}.cert.pem"
+    dest: /etc/etcd/peer.cert.pem
+  tags: ['etcd']
+- name: copy peer server key
+  copy:
+    src: "files/etcd/peer/{{ ansible_hostname }}.key.pem"
+    dest: /etc/etcd/peer.key.pem
+    mode: 0600
+  tags: ['etcd']
 - name: copy etcd
   copy:
     src: etcd

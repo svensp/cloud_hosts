@@ -48,3 +48,4 @@
   ufw:
     state: enabled
   tags: ['ufw']
+  when: ufw_enabled
