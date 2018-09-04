@@ -22,10 +22,13 @@
   tags: ['etcd']
 - name: create peer ca cert
   shell: |
-    openssl genrsa -passout env:PASSWORD -out files/etcd/peer/ca.key.pem  4096
-    openssl req -config roles/etcd/files/peer.cnf \
-      -batch -key files/etcd/peer/ca.key.pem -passout env:PASSWORD \
-      -new -x509 -days 7300 -sha256 -extensions v3_ca \
+    openssl genrsa -passout env:PASSWORD -des3 -out files/etcd/peer/ca.key.pem  4096
+    openssl req \
+      -passin env:PASSWORD \
+      -key files/etcd/peer/ca.key.pem \
+      -new -x509 \
+      -days 7300 \
+      -sha256 \
       -out files/etcd/peer/ca.cert.pem \
       -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ organization }} etcd peer ca'
   environment:
@@ -44,11 +47,23 @@
   tags: ['etcd']
 - name: Create peer server cert
   shell: |
-    openssl genrsa -passout env:PASSWORD -out files/etcd/peer/{{ ansible_hostname }}.key.pem  4096
-    openssl req -config roles/etcd/files/peer.cnf -batch -key files/etcd/peer/{{ ansible_hostname }}.key.pem -passin env:PASSWORD \
-      -new -x509 -days 7300 -sha256 -extensions server_cert \
-      -out files/etcd/peer/{{ ansible_hostname }}.cert.pem \
+    openssl genrsa -out files/etcd/peer/{{ ansible_hostname }}.key.pem 4096
+    openssl req \
+      -key files/etcd/peer/{{ ansible_hostname }}.key.pem \
+      -new \
+      -sha256 \
+      -out files/etcd/peer/{{ ansible_hostname }}.csr.pem \
       -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ ansible_fqdn }}'
+    openssl x509 \
+      -req \
+      -days 1825 \
+      -sha256 \
+      -in files/etcd/peer/{{ ansible_hostname }}.csr.pem \
+      -out files/etcd/peer/{{ ansible_hostname }}.cert.pem \
+      -CAcreateserial \
+      -CA files/etcd/peer/ca.cert.pem \
+      -CAkey files/etcd/peer/ca.key.pem \
+      -passin env:PASSWORD
   environment:
     PASSWORD: '{{ ca_password }}'
   delegate_to: localhost
@@ -66,9 +81,9 @@
 - name: create client ca cert
   shell: |
     openssl genrsa -passout env:PASSWORD -out files/etcd/client/ca.key.pem  4096
-    openssl req -config roles/etcd/files/client.cnf -batch -key files/etcd/client/ca.key.pem -passout env:PASSWORD \
+    openssl req -batch -key files/etcd/client/ca.key.pem -passin env:PASSWORD \
       -new -x509 -days 7300 -sha256 -extensions v3_ca \
-      -out files/etcd/client/ca.cert.pem
+      -out files/etcd/client/ca.cert.pem \
       -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ organization }} etcd server ca'
   environment:
     PASSWORD: '{{ ca_password }}'
@@ -86,11 +101,23 @@
   tags: ['etcd']
 - name: Create client server cert
   shell: |
-    openssl genrsa -passout env:PASSWORD -out files/etcd/client/{{ ansible_hostname }}.key.pem  4096
-    openssl req -config roles/etcd/files/peer.cnf -batch -key files/etcd/client/{{ ansible_hostname }}.key.pem -passin env:PASSWORD \
-      -new -x509 -days 7300 -sha256 -extensions server_cert \
-      -out files/etcd/client/{{ ansible_hostname }}.cert.pem \
+    openssl genrsa -out files/etcd/client/{{ ansible_hostname }}.key.pem 4096
+    openssl req \
+      -key files/etcd/client/{{ ansible_hostname }}.key.pem \
+      -new \
+      -sha256 \
+      -out files/etcd/client/{{ ansible_hostname }}.csr.pem \
       -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ ansible_fqdn }}'
+    openssl x509 \
+      -req \
+      -days 1825 \
+      -sha256 \
+      -in files/etcd/client/{{ ansible_hostname }}.csr.pem \
+      -out files/etcd/client/{{ ansible_hostname }}.cert.pem \
+      -CAcreateserial \
+      -CA files/etcd/client/ca.cert.pem \
+      -CAkey files/etcd/client/ca.key.pem \
+      -passin env:PASSWORD
   environment:
     PASSWORD: '{{ ca_password }}'
   delegate_to: localhost
