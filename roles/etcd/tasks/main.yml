@@ -124,21 +124,30 @@
   become: false
   when: not client_servercert.stat.exists
   tags: ['etcd']
+- name: Check if client client certs exist
+  stat:
+    path: "files/etcd/client/{{ item }}.cert.pem"
+  delegate_to: localhost
+  become: false
+  register: client_client_certs
+  run_once: true
+  tags: ['etcd']
+  loop: '{{ certs }}'
 - name: Create client client certs
   shell: |
-    openssl genrsa -out files/etcd/client/{{ item }}.key.pem 4096
+    openssl genrsa -out files/etcd/client/{{ item.item }}.key.pem 4096
     openssl req \
-      -key files/etcd/client/{{ item }}.key.pem \
+      -key files/etcd/client/{{ item.item }}.key.pem \
       -new \
       -sha256 \
-      -out files/etcd/client/{{ item }}.csr.pem \
-      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ item }}'
+      -out files/etcd/client/{{ item.item }}.csr.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ item.item }}'
     openssl x509 \
       -req \
       -days 1825 \
       -sha256 \
-      -in files/etcd/client/{{ item }}.csr.pem \
-      -out files/etcd/client/{{ item }}.cert.pem \
+      -in files/etcd/client/{{ item.item }}.csr.pem \
+      -out files/etcd/client/{{ item.item }}.cert.pem \
       -CAcreateserial \
       -CA files/etcd/client/ca.cert.pem \
       -CAkey files/etcd/client/ca.key.pem \
@@ -148,7 +157,9 @@
   delegate_to: localhost
   become: false
   tags: ['etcd']
-  loop: '{{ certs }}'
+  when: not item.stat.exists
+  run_once: true
+  loop: '{{ client_client_certs.results }}'
 - name: Create /etc/etcd
   file:
     path: /etc/etcd
