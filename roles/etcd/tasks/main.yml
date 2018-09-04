@@ -124,6 +124,31 @@
   become: false
   when: not client_servercert.stat.exists
   tags: ['etcd']
+- name: Create client client certs
+  shell: |
+    openssl genrsa -out files/etcd/client/{{ item }}.key.pem 4096
+    openssl req \
+      -key files/etcd/client/{{ item }}.key.pem \
+      -new \
+      -sha256 \
+      -out files/etcd/client/{{ item }}.csr.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ item }}'
+    openssl x509 \
+      -req \
+      -days 1825 \
+      -sha256 \
+      -in files/etcd/client/{{ item }}.csr.pem \
+      -out files/etcd/client/{{ item }}.cert.pem \
+      -CAcreateserial \
+      -CA files/etcd/client/ca.cert.pem \
+      -CAkey files/etcd/client/ca.key.pem \
+      -passin env:PASSWORD
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  tags: ['etcd']
+  loop: '{{ certs }}'
 - name: Create /etc/etcd
   file:
     path: /etc/etcd
