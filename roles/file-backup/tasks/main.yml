@@ -6,7 +6,7 @@
   tags: [ 'file-backup' ]
 - name: Install borgbackup
   apt:
-    name: borgbackup=1.1.5*
+    name: borgbackup=1.1.*
     state: present
     default_release: stretch-backports
   tags: [ 'file-backup' ]
@@ -30,7 +30,7 @@
   tags: [ 'file-backup' ]
 - name: Copy key file
   copy:
-    src: file_backup/key
+    src: "{{ key_directory }}/key"
     dest: /usr/local/lib/file_backup/key
     mode: 0600
   tags: [ 'file-backup' ]

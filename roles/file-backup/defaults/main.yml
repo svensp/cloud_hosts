@@ -1,4 +1,5 @@
 keyfile: /usr/local/lib/file_backup/key
+key_directory: "file_backup"
 cron:
   minute: 0
   hour: 1

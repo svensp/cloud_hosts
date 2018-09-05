@@ -1,3 +1,4 @@
+key_directory: "mysql_backup"
 link_crontab: false
 crontab:
   minute: 0

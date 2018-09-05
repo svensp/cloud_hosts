@@ -68,7 +68,7 @@
   when: link_crontab
 - name: Copy key file
   copy:
-    src: mysql_backup/key
+    src: "{{ key_directory }}/key"
     dest: /usr/local/lib/mysql_backup/key
     mode: 0600
   tags: ['mysql','mysql-backup']
