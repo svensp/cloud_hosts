@@ -2,5 +2,5 @@ mysql_port: 3306
 data_path: /var/lib/mysql
 bind_address: "{{ ansible_default_ipv4 }}"
 max_connections: 150
-wait_timeout: 120
-interactive_timeout: 300
+wait_timeout: 600
+interactive_timeout: 1200

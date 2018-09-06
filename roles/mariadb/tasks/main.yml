@@ -3,11 +3,14 @@
   file:
     path: /etc/mysql/mariadb.conf.d
     state: directory
+  tags: ['mysql', 'mariadb']
 - name: Upload mariadb 99-server.cnf
   template:
     src: 99-server.cnf
     dest: /etc/mysql/mariadb.conf.d/99-server.cnf
+  tags: ['mysql', 'mariadb']
 - name: Install Mariadb
   apt:
     name: mariadb-server
     state: present
+  tags: ['mysql', 'mariadb']
