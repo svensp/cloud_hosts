@@ -93,6 +93,8 @@ max_binlog_size   = 100M
 #
 # InnoDB is enabled by default with a 10MB datafile in /var/lib/mysql/.
 # Read the manual for more InnoDB related options. There are many!
+innodb_buffer_pool_size={{ innodb_buffer_pool_size }}
+innodb_flush_log_at_trx_commit={{ innodb_flush_log_at_trx_commit }}
 
 #
 # * Security Features
