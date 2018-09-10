@@ -13,7 +13,7 @@
   pip:
     executable: pip3
     name: hetznercloud
-    state: present
+    state: latest
   tags: ['cluster', 'stonith', 'hetzner']
 - name: Install Hetzner Cloud STONITH resource
   copy: 

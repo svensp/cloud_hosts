@@ -95,6 +95,9 @@ max_binlog_size   = 100M
 # Read the manual for more InnoDB related options. There are many!
 innodb_buffer_pool_size={{ innodb_buffer_pool_size }}
 innodb_flush_log_at_trx_commit={{ innodb_flush_log_at_trx_commit }}
+{% if innodb_log_file_size is defined %}
+innodb_log_file_size={{ innodb_log_file_size }}
+{% endif %}
 
 #
 # * Security Features
