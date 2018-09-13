@@ -55,8 +55,8 @@ interactive_timeout = {{ interactive_timeout }}
 #
 # * Query Cache Configuration
 #
-query_cache_limit	= 1M
-query_cache_size        = 16M
+query_cache_limit	= {{ query_cache_limit }}
+query_cache_size  = {{ query_cache_size }}
 
 #
 # * Logging and Replication
@@ -97,6 +97,16 @@ innodb_buffer_pool_size={{ innodb_buffer_pool_size }}
 innodb_flush_log_at_trx_commit={{ innodb_flush_log_at_trx_commit }}
 {% if innodb_log_file_size is defined %}
 innodb_log_file_size={{ innodb_log_file_size }}
+{% endif %}
+{% if table_open_cache is defined %}
+table_open_cache={{ table_open_cache }}
+{% endif %}
+{% if innodb_buffer_pool_instances is defined %}
+innodb_buffer_pool_instances={{ innodb_buffer_pool_instances }}
+{% endif %}
+
+{% if skip_name_resolve %}
+skip_name_resolve
 {% endif %}
 
 #
