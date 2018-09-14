@@ -30,7 +30,7 @@
   file:
     path: /usr/local/etc/defaults/
     state: directory
-    mode: 0755
+    mode: 0700
   tags: ['mysql','mysql-backup']
 - name: Copy defaults template
   template:
