@@ -6,3 +6,6 @@ wait_timeout: 600
 interactive_timeout: 1200
 innodb_buffer_pool_size: 1073741824 #1GB
 innodb_flush_log_at_trx_commit: 2
+query_cache_limit: '1M'
+query_cache_size: '16M'
+skip_name_resolve: true
