@@ -1,0 +1,4 @@
+version: "2"
+services:
+  {{ external_name }}:
+    image: rancher/external-service

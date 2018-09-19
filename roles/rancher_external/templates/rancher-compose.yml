@@ -1,0 +1,19 @@
+version: "2"
+services:
+  {{ external_name }}:
+    external_ips:
+    {% for external_ip in external_ips %}
+    - {{ external_ip }}
+    {% endfor  %}
+    start_on_create: true
+    {% if healthcheck_enable %}
+    health_check:
+      response_timeout: {{ healthcheck.timeout }}
+      healthy_threshold: {{ healthcheck.healthy_threshold }}
+      port:{{ healthcheck.port }}
+      unhealthy_threshold: {{ healthcheck.unhealthy_threshold }}
+      initializing_timeout: {{ healthcheck. }}
+      interval: {{ healthcheck.interval }}
+      strategy: {{ healthcheck.strategy }}
+      reinitializing_timeout: {{ healthcheck.reinitializing_timeout }}
+    {% endif %}

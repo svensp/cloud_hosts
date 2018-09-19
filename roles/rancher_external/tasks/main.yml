@@ -1,0 +1,57 @@
+---
+- name: "Check for required variables"
+  fail: msg="Variable '{{ item }}' is not defined"
+  when: item not in vars
+  with_items:
+    - stack_name
+    - external_name
+    - external_ips
+  tags: ['rancher_external']
+- name: Create temporary directory
+  tempfile:
+    state: directory
+  register: tmp_dir
+  delegate_to: localhost
+  run_once: true
+  tags: ['rancher_external']
+- name: Copy rancher-compose
+  copy:
+    src: rancher-compose
+    dest: "{{ tmp_dir.path }}/rancher-compose"
+    mode: 0700
+  delegate_to: localhost
+  run_once: true
+  tags: ['rancher_external']
+- name: Create rancher-compose.yml
+  template:
+    src: rancher-compose.yml
+    dest: "{{ tmp_dir.path }}/rancher-compose.yml"
+    mode: 0600
+  delegate_to: localhost
+  run_once: true
+  tags: ['rancher_external']
+- name: Create docker-compose.yml
+  template:
+    src: docker-compose.yml
+    dest: "{{ tmp_dir.path }}/docker-compose.yml"
+    mode: 0600
+  delegate_to: localhost
+  run_once: true
+  tags: ['rancher_external']
+- name: Create the external
+  command:
+  env:
+    COMPOSE_PROJECT_NAME: "{{ stack_name }}"
+    RANCHER_URL: "{{ rancher.url }}"
+    RANCHER_ACCESS_KEY: "{{ rancher.access_key }}"
+    RANCHER_SECRET_KEY: "{{ rancher.secret_key }}"
+  delegate_to: localhost
+  run_once: true
+  tags: ['rancher_external']
+- name: Cleanup temporary directory
+  file:
+    path: "{{ tmp_dir.path }}"
+    state: absent
+  delegate_to: localhost
+  run_once: true
+  tags: ['rancher_external']
