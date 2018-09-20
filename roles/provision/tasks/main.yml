@@ -12,6 +12,7 @@
   mount:
     src: "/dev/mapper/vg0-{{ root }}"
     path: /target
+    fstype: {{ root_type }}
     state: mounted
   when: 'ansible_hostname == "rescue"'
 - name: mount dev into root
@@ -19,6 +20,7 @@
     src: /dev
     path: /target/dev
     opts: bind
+    fstype: none
     state: mounted
   when: 'ansible_hostname == "rescue"'
 - name: mount proc into root
@@ -26,6 +28,7 @@
     src: /proc
     path: /target/proc
     opts: bind
+    fstype: none
     state: mounted
   when: 'ansible_hostname == "rescue"'
 - name: update apt in /target
