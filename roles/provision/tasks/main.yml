@@ -5,14 +5,50 @@
     state: file
   register: tempfile
   when: 'ansible_hostname == "rescue"'
-- name: Copy python install scrypt to tempfile
-  copy:
-    src: install_python.sh
-    dest: "{{ tempfile.path }}"
-    mode: 0777
-  when: 'ansible_hostname == "rescue"'
 - name: Install if system is in rescue mode
-  shell: "/root/.oldroot/nfs/install/installimage -a -n {{ inventory_hostname }} -b grub -r no -p /boot:ext4:256M,lvm:vg0:all -v {% for item in volumes %}{%- if not loop.first -%},{%- endif -%}vg0:{{ item.name }}:{{ item.mountpoint }}:{{ item.fs }}:{{ item.size }}{%- endfor %} -d sda -t yes -i /root/.oldroot/nfs/install/../images/Debian-9?-stretch-64-minimal.tar.gz -x {{ tempfile.path }}"
+  shell: "/root/.oldroot/nfs/install/installimage -a -n {{ inventory_hostname }} -b grub -r no -p /boot:ext4:256M,lvm:vg0:all -v {% for item in volumes %}{%- if not loop.first -%},{%- endif -%}vg0:{{ item.name }}:{{ item.mountpoint }}:{{ item.fs }}:{{ item.size }}{%- endfor %} -d sda -t yes -i /root/.oldroot/nfs/install/../images/Debian-9?-stretch-64-minimal.tar.gz"
+  when: 'ansible_hostname == "rescue"'
+- name: mount root
+  mount:
+    src: "/dev/mapper/vg0-{{ root }}"
+    dest: /target
+    state: mounted
+  when: 'ansible_hostname == "rescue"'
+- name: mount dev into root
+  mount:
+    src: /dev
+    dest: /target/dev
+    opts: bind
+    state: mounted
+  when: 'ansible_hostname == "rescue"'
+- name: mount proc into root
+  mount:
+    src: /proc
+    dest: /target/proc
+    opts: bind
+    state: mounted
+  when: 'ansible_hostname == "rescue"'
+- name: update apt in /target
+  command: chroot /target apt-get update
+  when: 'ansible_hostname == "rescue"'
+- name: install python in /target
+  command: chroot /target apt-get -y install python
+  when: 'ansible_hostname == "rescue"'
+- name: unmount dev in root
+  mount:
+    dest: /target/dev
+    state: unmounted
+  when: 'ansible_hostname == "rescue"'
+- name: unmount proc in root
+  mount:
+    dest: /target/proc
+    state: unmounted
+  when: 'ansible_hostname == "rescue"'
+- name: unmount root
+  mount:
+    src: "/dev/mapper/vg0-{{ root }}"
+    dest: /target
+    state: unmounted
   when: 'ansible_hostname == "rescue"'
 - name: Reboot system
   command: "shutdown -r 1"
