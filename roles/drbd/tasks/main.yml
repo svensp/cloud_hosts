@@ -4,7 +4,10 @@
   when: item not in vars
   with_items:
     - devices
-    - drbd_group
+  tags: ['drbd']
+- name: "Check for drbd_group or drbd_hosts"
+  fail: msg="Variable neither 'drbd_group' nor 'drbd_hosts' is defined"
+  when: drbd_group not in vars and drbd_hosts not in vars
   tags: ['drbd']
 - name: Install drbd utils
   apt:
