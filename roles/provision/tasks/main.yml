@@ -11,20 +11,20 @@
 - name: mount root
   mount:
     src: "/dev/mapper/vg0-{{ root }}"
-    dest: /target
+    path: /target
     state: mounted
   when: 'ansible_hostname == "rescue"'
 - name: mount dev into root
   mount:
     src: /dev
-    dest: /target/dev
+    path: /target/dev
     opts: bind
     state: mounted
   when: 'ansible_hostname == "rescue"'
 - name: mount proc into root
   mount:
     src: /proc
-    dest: /target/proc
+    path: /target/proc
     opts: bind
     state: mounted
   when: 'ansible_hostname == "rescue"'
@@ -36,18 +36,18 @@
   when: 'ansible_hostname == "rescue"'
 - name: unmount dev in root
   mount:
-    dest: /target/dev
+    path: /target/dev
     state: unmounted
   when: 'ansible_hostname == "rescue"'
 - name: unmount proc in root
   mount:
-    dest: /target/proc
+    path: /target/proc
     state: unmounted
   when: 'ansible_hostname == "rescue"'
 - name: unmount root
   mount:
     src: "/dev/mapper/vg0-{{ root }}"
-    dest: /target
+    path: /target
     state: unmounted
   when: 'ansible_hostname == "rescue"'
 - name: Reboot system
