@@ -1,3 +1,6 @@
 #!/bin/sh
 apt-get update
-apt-get -y install python
+while ! apt-get -y install python ; do
+	echo "Failed to install python, waiting 5s"
+	sleep 5s
+done
