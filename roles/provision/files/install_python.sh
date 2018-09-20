@@ -1,3 +1,3 @@
 #!/bin/sh
-apt update
-apt -y install python
+apt-get update
+apt-get -y install python
