@@ -27,6 +27,10 @@
   run_once: true
   with_items: "{{ devices }}"
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: wait for resources to be created
+  sleep:
+    seconds: 1
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd mount resource
   pcs_resource:
     name: "{{ item.name }}_mount"
@@ -35,6 +39,10 @@
     options: "device=/dev/{{ item.dev }} directory={{ item.mnt }} fstype={{ item.format }} op monitor interval=20s meta failure-timeout=10"
   run_once: true
   with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: wait for resources to be created
+  sleep:
+    seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd mount colocation
   pcs_constraint_colocation:
