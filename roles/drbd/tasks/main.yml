@@ -48,6 +48,7 @@
 - name: Start drbd devices
   command: "drbdadm up {{ item.name }}"
   with_items: "{{ devices }}"
+  ignore_errors: true
   tags: ['drbd', 'initialize', 'up']
 - name: check if initial sync is necessary
   shell: "drbd-overview | grep ':{{ item.name }}/'"
