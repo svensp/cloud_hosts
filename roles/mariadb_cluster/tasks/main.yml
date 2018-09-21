@@ -58,6 +58,10 @@
     options: "datadir=/mnt/mysql meta failure-timeout=10"
   run_once: true
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
+- name: wait for resources to be created
+  sleep:
+    seconds: 1
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: Create mysql cluster colocation constraint
   pcs_constraint_colocation:
     resource1: mysql-server
@@ -130,6 +134,10 @@
     resource_type: "ocf:heartbeat:symlink"
     options: "link=/etc/logrotate.d/mysql-server target=/etc/logrotate.cluster/mysql-server meta failure-timeout=10"
   run_once: true
+  tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
+- name: wait for resources to be created
+  sleep:
+    seconds: 1
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: Create logrotate cluster colocation constraint
   pcs_constraint_colocation:
