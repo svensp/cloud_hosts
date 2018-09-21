@@ -20,22 +20,11 @@
   tags: ['cluster_drbd', 'pcs', 'pcs-property']
 - name: Create drbd resource on host1
   pcs_resource:
-    name: "{{ devices[0].name }}"
+    name: "{{ item.name }}"
     state: present
     resource_type: "ocf:linbit:drbd"
-    options: "drbd_resource={{ devices[0].drbd_name }} {% if devices[0].conf is defined %}drbdconf={{ devices[0].conf }}{% endif  %} --master meta failure-timeout=10 master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true op monitor interval=20s"
-  run_once: true
-  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
-- name: wait for resources to be created
-  pause:
-    seconds: 1
-  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
-- name: Create drbd resource on host2
-  pcs_resource:
-    name: "{{ devices[1].name }}"
-    state: present
-    resource_type: "ocf:linbit:drbd"
-    options: "drbd_resource={{ devices[1].drbd_name }} {% if devices[0].conf is defined %}drbdconf={{ devices[1].conf }}{% endif  %} --master meta failure-timeout=10 master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true op monitor interval=20s"
+    options: "drbd_resource={{ item.drbd_name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta failure-timeout=10 master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true op monitor interval=20s"
+  with_items: '{{ devices }}'
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: wait for resources to be created
@@ -47,20 +36,9 @@
     name: "{{ item.name }}_mount"
     state: present
     resource_type: "Filesystem"
-    options: "device=/dev/{{ devices[0].dev }} directory={{ devices[0].mnt }} fstype={{ devices[0].format }} op monitor interval=20s meta failure-timeout=10"
+    options: "device=/dev/{{ item.dev }} directory={{ item.mnt }} fstype={{ item.format }} op monitor interval=20s meta failure-timeout=10"
   run_once: true
-  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
-- name: wait for resources to be created
-  pause:
-    seconds: 1
-  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
-- name: Create drbd mount resource
-  pcs_resource:
-    name: "{{ item.name }}_mount"
-    state: present
-    resource_type: "Filesystem"
-    options: "device=/dev/{{ devices[1].dev }} directory={{ devices[1].mnt }} fstype={{ devices[1].format }} op monitor interval=20s meta failure-timeout=10"
-  run_once: true
+  with_items: '{{ devices }}'
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: wait for resources to be created
   pause:
