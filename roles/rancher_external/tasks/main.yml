@@ -39,7 +39,7 @@
   run_once: true
   tags: ['rancher_external']
 - name: Create the external
-  command: "{{ tmp_dir.path }}/rancher-compose -f '{{ tmp_dir.path }}/docker-compose.yml' -r '{{ tmp_dir.path }}/rancher-compose.yml'"
+  command: "{{ tmp_dir.path }}/rancher-compose -f '{{ tmp_dir.path }}/docker-compose.yml' -r '{{ tmp_dir.path }}/rancher-compose.yml' up"
   environment:
     COMPOSE_PROJECT_NAME: "{{ stack_name }}"
     RANCHER_URL: "{{ rancher.url }}"
