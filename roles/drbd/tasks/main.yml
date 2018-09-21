@@ -41,7 +41,7 @@
   changed_when: no
   tags: ['drbd', 'initialize']
 - name: Initialize drbd devices
-  shell: "drbdadm create-md {{ item.item.name }} --force"
+  shell: "yes yes | drbdadm create-md {{ item.item.name }}"
   when: "item.stdout.find('Diskless/') != -1"
   with_items: "{{ uninitialized.results }}"
   tags: ['drbd', 'initialize', 'create-md']

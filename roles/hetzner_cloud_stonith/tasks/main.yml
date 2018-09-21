@@ -30,6 +30,10 @@
     resource_type: "stonith:external/hetzner_cloud"
     options: "api_token={{ api_token }} op monitor timeout=60s interval=30s meta failure-timeout=10"
   tags: ['cluster', 'stonith', 'hetzner']
+- name: wait for resources to be created
+  pause:
+    seconds: 1
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Force stonith location not on own host
   pcs_constraint_location:
     state: present

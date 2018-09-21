@@ -27,7 +27,7 @@
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: wait for resources to be created
-  sleep:
+  pause:
     seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd resource on host2
@@ -39,7 +39,7 @@
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: wait for resources to be created
-  sleep:
+  pause:
     seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd mount resource
@@ -51,7 +51,7 @@
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: wait for resources to be created
-  sleep:
+  pause:
     seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd mount resource
@@ -63,7 +63,7 @@
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: wait for resources to be created
-  sleep:
+  pause:
     seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd mount colocation

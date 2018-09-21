@@ -59,7 +59,7 @@
   run_once: true
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: wait for resources to be created
-  sleep:
+  pause:
     seconds: 1
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: Create mysql cluster colocation constraint
@@ -136,7 +136,7 @@
   run_once: true
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: wait for resources to be created
-  sleep:
+  pause:
     seconds: 1
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'pcs-resource']
 - name: Create logrotate cluster colocation constraint
