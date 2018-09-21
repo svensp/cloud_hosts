@@ -40,7 +40,7 @@
   tags: ['rancher_external']
 - name: Create the external
   command:
-  env:
+  environment:
     COMPOSE_PROJECT_NAME: "{{ stack_name }}"
     RANCHER_URL: "{{ rancher.url }}"
     RANCHER_ACCESS_KEY: "{{ rancher.access_key }}"
