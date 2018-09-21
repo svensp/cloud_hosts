@@ -47,7 +47,6 @@
   tags: ['drbd', 'initialize', 'create-md']
 - name: Start drbd devices
   command: "drbdadm up {{ item.name }}"
-  when: "item.stdout.find('Unconfigured') != -1"
   with_items: "{{ devices }}"
   tags: ['drbd', 'initialize', 'up']
 - name: check if initial sync is necessary
