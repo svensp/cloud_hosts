@@ -3,7 +3,11 @@ resource {{ item.name }} {
 	device      {{ item.drbd_device }} minor {{ item.minor }};
 	meta-disk   internal;
 
-	{% for host in groups[drbd_group] if drbd_group is defined else drbd_hosts %}
+	{% if drbd_group is defined %}
+		{% set drbd_hosts=groups[drbd_group] %}
+	{% endif %}
+
+	{% for host in drbd_hosts %}
 
 	on {{ hostvars[host].ansible_hostname }} {
 		address {{ hostvars[host].ansible_default_ipv4.address }}:{{ item.port }};
