@@ -53,7 +53,7 @@
 - name: check if initial sync is necessary
   shell: "drbd-overview | grep ':{{ item.name }}/'"
   ignore_errors: yes
-  register: primary
+  register: primary_before_sync
   changed_when: no
   with_items: "{{ devices }}"
   tags: ['drbd', 'initialize', 'sync']
@@ -61,12 +61,19 @@
   shell: "drbdadm primary --force {{ item.item.name }}"
   run_once: yes
   when: "item.stdout.find('Inconsistent/Inconsistent') != -1"
-  with_items: "{{ primary.results }}"
+  with_items: "{{ primary_before_sync.results }}"
   tags: ['drbd', 'initialize', 'filesystem']
 - name: 'Wait for sync'
   shell: "while drbd-overview | grep -q SyncTarget ; do sleep 1s ; done"
   tags: ['drbd', 'initialize', 'filesystem']
   changed_when: no
+- name: Check which host is primary
+  shell: "drbd-overview | grep ':{{ item.name }}/'"
+  ignore_errors: yes
+  register: primary
+  changed_when: no
+  with_items: "{{ devices }}"
+  tags: ['drbd', 'initialize', 'sync']
 - name: 'Write filesystems on drbd device'
   filesystem:
     fstype: ext4
