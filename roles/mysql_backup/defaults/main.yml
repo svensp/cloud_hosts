@@ -18,3 +18,4 @@ sftp_root_directory: "backup"
 sftp_user: "root"
 sftp_password: ""
 sftp_key: "/usr/local/lib/mysql_backup/key"
+fetch_key: true
