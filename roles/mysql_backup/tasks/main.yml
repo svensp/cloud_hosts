@@ -72,3 +72,10 @@
     dest: /usr/local/lib/mysql_backup/key
     mode: 0600
   tags: ['mysql','mysql-backup']
+- name: Retrieve backup server ssh fingerprint
+  shell: "ssh-keyscan -H {{ sftp_server.rpartition('://')[2].split(':')[0] }}"
+  register: fingerprint
+- name: Add backup server ssh fingerprint
+  known_hosts:
+    name: "{{ sftp_server.rpartition('://')[2].split(':')[0] }}"
+    key: "{{ fingerprint.stdout }}"
