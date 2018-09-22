@@ -75,11 +75,11 @@
 - name: Retrieve backup server ssh fingerprint
   shell: "ssh-keyscan -H {{ sftp_server.rpartition('://')[2].split(':')[0] }} 2> /dev/null"
   register: fingerprint
-  when: fetch_keys
+  when: fetch_key
   tags: ['mysql','mysql-backup']
 - name: Add backup server ssh fingerprint
   known_hosts:
     name: "{{ sftp_server.rpartition('://')[2].split(':')[0] }}"
     key: "{{ fingerprint.stdout }}"
-  when: fetch_keys
+  when: fetch_key
   tags: ['mysql','mysql-backup']
