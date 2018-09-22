@@ -30,6 +30,8 @@
   tags: ['mariadb', 'cluster', 'mariadb_cluster', 'systemd-stop', 'systemd']
 - name: Check target mounted
   shell: "mount | grep -q {{ data_dir }}"
+  args:
+    warn: false
   when: mounted
   changed_when: no
   ignore_errors: true
