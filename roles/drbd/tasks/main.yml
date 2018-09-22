@@ -78,7 +78,6 @@
   filesystem:
     fstype: ext4
     dev: "{{ item.item.drbd_device }}"
-  run_once: yes
   when: "item.stdout.find('Primary/') != -1"
   with_items: "{{ primary.results }}"
   tags: ['drbd', 'initialize', 'filesystem']
