@@ -1,3 +1,4 @@
 - name: Reload exports
   command: exportfs -ra
   ignore_errors: true
+  when: reexport_on_changes

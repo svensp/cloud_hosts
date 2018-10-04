@@ -2,3 +2,4 @@ anonymous: false
 threads: 16
 lease_timeout: 10
 grace_timeout: 10
+reexport_on_changes: true
