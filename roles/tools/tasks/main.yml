@@ -29,3 +29,16 @@
     dest: /etc/logrotate.d/rsyslog
     mode: 0644
   tags: [ 'tools', 'updates' ]
+- name: Create reboot
+  cron:
+    state: present
+    user: root
+    cron_file: 'update_auto_reboot'
+    disabled: "{{ not auto_restart }}"
+    job: "test -f /var/run/reboot-required && shutdown -r now"
+    hour: "{{ restart.hour }}"
+    minute: "{{ restart.minute }}"
+    weekday: "{{ ansible_play_batch.index(inventory_hostname) + 1 % 7 }}"
+  tags: [ 'tools', 'updates' ]
+
+
