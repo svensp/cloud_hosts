@@ -1,3 +1,0 @@
-Package: *
-Pin: origin {{ versions[ansible_distribution_release][version].repo }}
-Pin-Priority: 1000

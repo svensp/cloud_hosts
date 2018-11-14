@@ -16,22 +16,25 @@
   ignore_errors: true
 - name: Add keys
   apt_key:
-    keyserver: "{{ item.key.server }}"
-    id: "{{ item.key.name }}"
+    keyserver: "{{ versions[ansible_distribution_release][item].key.server }}"
+    id: "{{ versions[ansible_distribution_release][item].key.name }}"
     state: present
-  loop: "{{ versions[ansible_distribution_release] }}"
+  loop: "{{ versions[ansible_distribution_release]|flatten(levels=1) }}"
 - name: Add repositories
   apt_repository:
-    repo: "deb {{ item.repo }} {{ ansible_distribution_release }} main"
-    state: present
+    repo: "deb {{ versions[ansible_distribution_release][item].repo }} {{ ansible_distribution_release }} main"
+    state: "{% if version != 'distribution' %}present{% else %}absent{% endif %}"
     filename: mariadb
-  loop: "{{ versions[ansible_distribution_release] }}"
+  loop: "{{ versions[ansible_distribution_release]|flatten(levels=1) }}"
 - name: Pin packages to chosen version
   template:
-    src: mariadb-pin.pref
+    src: pin-mariadb.pref
     dest: /etc/apt/preferences.d/
 - name: Install Mariadb
   apt:
-    name: mariadb-server
+    name: "mariadb-server{% if version != 'distribution' %}={{ versions[ansible_distribution_release][version].version }}{% endif %}"
     state: present
+    update_cache: yes
+  environment:
+    RUNLEVEL: 1
   tags: ['mysql', 'mariadb']
