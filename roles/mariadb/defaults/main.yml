@@ -10,3 +10,76 @@ query_cache_limit: '1M'
 query_cache_size: '16M'
 join_buffer_size: 262144
 skip_name_resolve: true
+version: debian
+versions:
+  stretch:
+    10.1:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian
+      key:
+        server: keyserver.ubuntu.com
+        name: 0xF1656F24C74CD1D8
+    10.2:
+      stretch:
+        repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/debian
+        key:
+          server: keyserver.ubuntu.com
+          name: 0xF1656F24C74CD1D8
+    10.3:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/debian
+      key:
+        server: keyserver.ubuntu.com
+        name: 0xF1656F24C74CD1D8
+  jessie:
+    10.1:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian
+      key:
+        server: keyserver.ubuntu.com
+        name: 0xcbcb082a1bb943db
+    10.2:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/debian
+      key:
+        server: keyserver.ubuntu.com
+        name: 0xcbcb082a1bb943db
+    10.3:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/debian
+      key:
+        server: keyserver.ubuntu.com
+        name: 0xcbcb082a1bb943db
+  xenial:
+    10.1:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name: 0xF1656F24C74CD1D8
+    10.2:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name: 0xF1656F24C74CD1D8
+    10.3:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name: 0xF1656F24C74CD1D8
+  bionic:
+    10.1:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name:0xF1656F24C74CD1D8
+    10.2:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name: 0xF1656F24C74CD1D8
+    10.3:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name: 0xF1656F24C74CD1D8
+  cosmic:
+    10.2:
+      repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/ubuntu
+      key:
+        server: hkp://keyserver.ubuntu.com:80
+        name: 0xF1656F24C74CD1D8

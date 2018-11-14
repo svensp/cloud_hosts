@@ -9,6 +9,27 @@
     src: 99-server.cnf
     dest: /etc/mysql/mariadb.conf.d/99-server.cnf
   tags: ['mysql', 'mariadb']
+- name: Install dirmngr
+  apt:
+    name: dirmngr
+    state: present
+  ignore_errors: true
+- name: Add keys
+  apt_key:
+    keyserver: "{{ item.key.server }}"
+    id: "{{ item.key.name }}"
+    state: present
+  loop: "{{ versions[ansible_distribution_release] }}"
+- name: Add repositories
+  apt_repository:
+    repo: "deb {{ item.repo }} {{ ansible_distribution_release }} main"
+    state: present
+    filename: mariadb
+  loop: "{{ versions[ansible_distribution_release] }}"
+- name: Pin packages to chosen version
+  template:
+    src: mariadb-pin.pref
+    dest: /etc/apt/preferences.d/
 - name: Install Mariadb
   apt:
     name: mariadb-server
