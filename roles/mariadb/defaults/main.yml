@@ -14,21 +14,21 @@ version: distribution
 default_domain: ftp.hosteurope.de
 versions:
   stretch:
-    10.1:
+    "10.1":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian
       domain: ftp.hosteurope.de
       version: 10.1.*
       key:
         server: keyserver.ubuntu.com
         name: "0xF1656F24C74CD1D8"
-    10.2:
+    "10.2":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/debian
       domain: ftp.hosteurope.de
       version: 10.2.*
       key:
         server: keyserver.ubuntu.com
         name: "0xF1656F24C74CD1D8"
-    10.3:
+    "10.3":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/debian
       domain: ftp.hosteurope.de
       version: 1:10.3.*
@@ -36,64 +36,64 @@ versions:
         server: keyserver.ubuntu.com
         name: "0xF1656F24C74CD1D8"
   jessie:
-    10.1:
+    "10.1":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/debian
       domain: ftp.hosteurope.de
       key:
         server: keyserver.ubuntu.com
         name: "0xcbcb082a1bb943db"
-    10.2:
+    "10.2":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/debian
       domain: ftp.hosteurope.de
       key:
         server: keyserver.ubuntu.com
         name: "0xcbcb082a1bb943db"
-    10.3:
+    "10.3":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/debian
       domain: ftp.hosteurope.de
       key:
         server: keyserver.ubuntu.com
         name: "0xcbcb082a1bb943db"
   xenial:
-    10.1:
+    "10.1":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/ubuntu
       domain: ftp.hosteurope.de
       key:
         server: hkp://keyserver.ubuntu.com:80
         name: "0xF1656F24C74CD1D8"
-    10.2:
+    "10.2":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/ubuntu
       domain: ftp.hosteurope.de
       key:
         server: hkp://keyserver.ubuntu.com:80
         name: "0xF1656F24C74CD1D8"
-    10.3:
+    "10.3":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/ubuntu
       domain: ftp.hosteurope.de
       key:
         server: hkp://keyserver.ubuntu.com:80
         name: "0xF1656F24C74CD1D8"
   bionic:
-    10.1:
+    "10.1":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.1/ubuntu
       domain: ftp.hosteurope.de
       key:
         server: hkp://keyserver.ubuntu.com:80
         name: "0xF1656F24C74CD1D8"
-    10.2:
+    "10.2":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/ubuntu
       domain: ftp.hosteurope.de
       key:
         server: hkp://keyserver.ubuntu.com:80
         name: "0xF1656F24C74CD1D8"
-    10.3:
+    "10.3":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.3/ubuntu
       domain: ftp.hosteurope.de
       key:
         server: hkp://keyserver.ubuntu.com:80
         name: "0xF1656F24C74CD1D8"
   cosmic:
-    10.2:
+    "10.2":
       repo: http://ftp.hosteurope.de/mirror/mariadb.org/repo/10.2/ubuntu
       domain: ftp.hosteurope.de
       arches: amd64
