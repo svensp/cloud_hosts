@@ -1,3 +1,3 @@
 Package: *
-Pin: origin "{% if version != 'distribution' %}{{ versions[ansible_distribution_release][version].domain }}{%else%}{{ default_domain }}{% endif %}"
-Pin-Priority: {% if version != 'distribution' %}1000{% else %}-1{% endif %}
+Pin: origin "{{ versions[ansible_distribution_release][version].domain }}"
+Pin-Priority: 1000

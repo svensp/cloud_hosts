@@ -10,7 +10,7 @@ query_cache_limit: '1M'
 query_cache_size: '16M'
 join_buffer_size: 262144
 skip_name_resolve: true
-version: distribution
+version: "10.3"
 default_domain: ftp.hosteurope.de
 versions:
   stretch:

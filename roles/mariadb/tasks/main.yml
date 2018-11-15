@@ -23,7 +23,7 @@
 - name: Add repositories
   apt_repository:
     repo: "deb {{ versions[ansible_distribution_release][item].repo }} {{ ansible_distribution_release }} main"
-    state: "{% if version != 'distribution' %}present{% else %}absent{% endif %}"
+    state: "present"
     filename: mariadb
   loop: "{{ versions[ansible_distribution_release]|flatten(levels=1) }}"
 - name: Pin packages to chosen version
@@ -32,7 +32,7 @@
     dest: /etc/apt/preferences.d/
 - name: Install Mariadb
   apt:
-    name: "mariadb-server{% if version != 'distribution' %}={{ versions[ansible_distribution_release][version].version }}{% endif %}"
+    name: "mariadb-server={{ versions[ansible_distribution_release][version].version }}"
     state: present
     update_cache: yes
   environment:
