@@ -1,3 +1,4 @@
+TOOL={{ tool }}
 PREFIX={{ prefix }}
 PLUGIN={{ plugin }}
 LOG={{ log }}

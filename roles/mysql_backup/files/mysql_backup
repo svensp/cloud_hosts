@@ -62,7 +62,7 @@ DATABASE_PASSWORD=${DATABASE_PASSWORD:-}
 
 help() {
 	echo "$0 MODE [BASE_IDENTIFIER] IDENTIFIER"
-	echo 
+	echo
 	echo "MODE: "
 	echo "     - FULL Create a full backup"
 	echo "     - INCREMENTAL Create an incremental backup based on an already"
@@ -94,7 +94,7 @@ clean_workdir() {
 		rm -Rf "${WORKDIR}"
 	fi
 }
-trap clean_workdir EXIT 
+trap clean_workdir EXIT
 
 workdir() {
 	if [ -z "${WORKDIR}" ] ; then
@@ -108,7 +108,7 @@ full_backup() {
 	workdir
 	local BACKUPDIR="${WORKDIR}"
 
-	xtrabackup --backup \
+	${TOOL} --backup \
 		--data-dir="${DATADIR}" \
 		--target-dir="${BACKUPDIR}" \
 		${DATABASE_CONNECT} \
@@ -148,7 +148,7 @@ incremental_backup() {
 	fi
 
 	log "${LOG_INFO}" "Creating incremental backup ${IDENTIFIER}"
-	xtrabackup --backup \
+	${TOOL} --backup \
 		--incremental-lsn="${LSN}" \
 		--data-dir="${DATADIR}" \
 		--target-dir="${BACKUPDIR}" \
@@ -206,7 +206,7 @@ restore_full() {
 	local BACKUPDIR="${WORKDIR}"
 	fs_download "${IDENTIFIER}" "${BACKUPDIR}"
 
-	xtrabackup --prepare --target-dir="${BACKUPDIR}"
+	${TOOL} --prepare --target-dir="${BACKUPDIR}"
 
 	if [ ! -z "$(ls -A "${TARGET_DIRECTORY}")" ] ; then
 		log "${LOG_ERROR}" "Directory ${TARGET_DIRECTORY} not empty. aborting"
@@ -247,7 +247,7 @@ restore_incremental() {
 	log "${LOG_DEBUG}" "Downloading full backup ${INCREMENTAL_IDENTIFIERS[0]}"
 	mkdir "${BACKUPDIR}/base"
 	fs_download "${INCREMENTAL_IDENTIFIERS[0]}" "${BACKUPDIR}/base"
-	xtrabackup --prepare --apply-log-only --target-dir="${BACKUPDIR}/base"
+	${TOOL} --prepare --apply-log-only --target-dir="${BACKUPDIR}/base"
 
 	#
 	# Download and prepare all incremental backups in the history file
@@ -257,7 +257,7 @@ restore_incremental() {
 		local INCREMENTAL_DIR="${BACKUPDIR}/${INCREMENTAL_IDENTIFIER}"
 		mkdir "${INCREMENTAL_DIR}"
 		fs_download "${INCREMENTAL_IDENTIFIER}" "${INCREMENTAL_DIR}"
-		xtrabackup --prepare --apply-log-only \
+		${TOOL} --prepare --apply-log-only \
 		--target-dir="${BACKUPDIR}/base" \
 			--incremental-dir="${INCREMENTAL_DIR}"
 	done
@@ -267,7 +267,7 @@ restore_incremental() {
 	# for transactions is done and the backup completly prepared.
 	#
 	log "${LOG_DEBUG}" "Preparing requested backup ${IDENTIFIER}"
-	xtrabackup --prepare --target-dir="${BACKUPDIR}/base" \
+	${TOOL} --prepare --target-dir="${BACKUPDIR}/base" \
 		--incremental-dir="${BACKUPDIR}/${IDENTIFIER}"
 
 	if [ ! -z "$(ls -A "${TARGET_DIRECTORY}")" ] ; then
@@ -307,7 +307,7 @@ validate_full() {
 
 
 #
-# validate_incremental 
+# validate_incremental
 #
 # Validate that following a given incremental backups history starts at lsn 0
 # and arrives at the backups lsn, with each backups from_lsn matching the
@@ -334,7 +334,7 @@ validate_incremental() {
 
 		if [ "${START_LSN}" -ne "${PREVIOUS_END_LSN}" ] ; then
 			log "${LOG_ERROR}" "Validation failed! Start lsn of ${CHECK_IDENTIFIER} \
-				does not match end lsn of ${PREVIOUS_IDENTIFIER}"	
+				does not match end lsn of ${PREVIOUS_IDENTIFIER}"
 			exit 1
 		fi
 
@@ -407,7 +407,7 @@ rebuild() {
 
 				if [ "${CHECK_FROM_LSN}" -ne "0" ] && [ -z "${HISTORY_FILE_CONTENT}" ]  ; then
 					if ! bash ${0} REBUILD "${CHECK_IDENTIFIER}" ; then
-						log "${LOG_ERROR}" Rebuilding found previous backup "${CHECK_IDENTIFIER} failed" 
+						log "${LOG_ERROR}" Rebuilding found previous backup "${CHECK_IDENTIFIER} failed"
 						exit 1
 					fi
 
@@ -427,7 +427,7 @@ rebuild() {
 				else
 					echo "${CHECK_IDENTIFIER}" >> "${BACKUP}/${HISTORY_FILE}"
 				fi
-				fs_upload "${BACKUP}" "${IDENTIFIER}" 
+				fs_upload "${BACKUP}" "${IDENTIFIER}"
 				log "${LOG_INFO}" Backup with END_LSN ${REBUILD_START_LSN} found: ${CHECK_IDENTIFIER}
 				exit 0
 
