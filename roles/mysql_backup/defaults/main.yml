@@ -19,7 +19,7 @@ log: "3"
 datadir: "/var/mysql"
 history_file: "backup_history.txt"
 database_connect: "--socket=/var/run/mysqld/mysqld.sock"
-database_user: ""
+database_user: "root"
 database_password: ""
 
 sftp_server: "localhost"
