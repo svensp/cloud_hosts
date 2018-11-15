@@ -10,6 +10,7 @@
 
 # this is only for the mysqld standalone daemon
 [mysqld]
+plugin-load-add = auth_socket.so
 
 #
 # * Basic Settings
