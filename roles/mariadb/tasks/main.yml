@@ -14,22 +14,26 @@
     name: dirmngr
     state: present
   ignore_errors: true
+  tags: ['mysql', 'mariadb']
 - name: Add keys
   apt_key:
     keyserver: "{{ versions[ansible_distribution_release][item].key.server }}"
     id: "{{ versions[ansible_distribution_release][item].key.name }}"
     state: present
   loop: "{{ versions[ansible_distribution_release]|flatten(levels=1) }}"
+  tags: ['mysql', 'mariadb']
 - name: Add repositories
   apt_repository:
     repo: "deb {{ versions[ansible_distribution_release][item].repo }} {{ ansible_distribution_release }} main"
     state: "present"
     filename: mariadb
   loop: "{{ versions[ansible_distribution_release]|flatten(levels=1) }}"
+  tags: ['mysql', 'mariadb']
 - name: Pin packages to chosen version
   template:
     src: pin-mariadb.pref
     dest: /etc/apt/preferences.d/
+  tags: ['mysql', 'mariadb']
 - name: Install Mariadb
   apt:
     name: "mariadb-server={{ versions[ansible_distribution_release][version].version }}"
