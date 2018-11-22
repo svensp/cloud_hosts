@@ -12,6 +12,7 @@ TimeoutStartSec=0
 ExecStart=/usr/local/bin/etcd --name my-etcd-{{ ansible_hostname }} \
 	--quota-backend-bytes {{ storage }} \
     --data-dir /var/lib/etcd \
+    --auto-compaction \
     --listen-client-urls https://{{ ansible_default_ipv4.address }}:2379 \
     --advertise-client-urls https://{{ ansible_fqdn }}:2379 \
     --listen-peer-urls https://{{ ansible_default_ipv4.address }}:2380 \
