@@ -1,3 +1,12 @@
+tool: mariabackup
+version: "10.3"
+versions:
+  "10.1":
+    package: mariadb-backup-10.1
+  "10.2":
+    package: mariadb-backup-10.2
+  "10.3":
+    package: mariadb-backup
 key_directory: "mysql_backup"
 link_crontab: false
 crontab:
@@ -10,7 +19,7 @@ log: "3"
 datadir: "/var/mysql"
 history_file: "backup_history.txt"
 database_connect: "--socket=/var/run/mysqld/mysqld.sock"
-database_user: ""
+database_user: "root"
 database_password: ""
 
 sftp_server: "localhost"

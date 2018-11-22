@@ -1,0 +1,3 @@
+Package: *
+Pin: origin "{{ versions[ansible_distribution_release][version].domain }}"
+Pin-Priority: 1000

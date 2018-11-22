@@ -4,9 +4,16 @@
     src: xtrabackup.stretch_amd64.deb
     dest: /tmp/xtrabackup.deb
   tags: ['mysql','mysql-backup']
+  when: tool == 'xtrabackup'
 - name: install xtrabackup
   apt:
     deb: /tmp/xtrabackup.deb
+    state: present
+  tags: ['mysql','mysql-backup']
+  when: tool == 'xtrabackup'
+- name: Install mariadb-backup package
+  apt:
+    name: "{{ versions[version].package }}"
     state: present
   tags: ['mysql','mysql-backup']
 - name: install lftp
@@ -72,14 +79,15 @@
     dest: /usr/local/lib/mysql_backup/key
     mode: 0600
   tags: ['mysql','mysql-backup']
+  when: plugin == "scp"
 - name: Retrieve backup server ssh fingerprint
   shell: "ssh-keyscan -H {{ sftp_server.split(':')[0] }} 2> /dev/null"
   register: fingerprint
-  when: fetch_key
+  when: plugin == "scp" and fetch_key
   tags: ['mysql','mysql-backup']
 - name: Add backup server ssh fingerprint
   known_hosts:
     name: "{{ sftp_server.split(':')[0] }}"
     key: "{{ fingerprint.stdout }}"
-  when: fetch_key
+  when: plugin == "scp" and fetch_key
   tags: ['mysql','mysql-backup']
