@@ -232,3 +232,21 @@
     name: etcd
     state: started
   tags: ['etcd']
+- name: copy etcd-client
+  template:
+    src: etcd-client
+    dest: /usr/local/bin/etcd-client
+    mode: 0755
+  tags: ['etcd']
+- name: copy etcd-defrag
+  template:
+    src: etcd-defrag
+    dest: /usr/local/bin/etcd-defrag
+    mode: 0755
+  tags: ['etcd']
+- name: copy defrag crontab
+  template:
+    src: crontab
+    dest: /etc/cron.d/etcd-defrag
+    mode: 0644
+  tags: ['etcd']

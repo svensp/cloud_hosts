@@ -1,0 +1,9 @@
+#!/bin/sh
+ETCD_DIRECTORY=/etc/etcd
+export ETCDCTL_API=3
+/usr/local/bin/etcdctl \
+	--cacert "${ETCD_DIRECTORY}/client.cacert.pem" \
+	--cert "${ETCD_DIRECTORY}/client.cert.pem" \
+	--key "${ETCD_DIRECTORY}/client.key.pem" \
+	--endpoints "{{ ansible_fqdn }}:2379" \
+	defrag
