@@ -1,0 +1,5 @@
+data_center: "datacenter"
+consul:
+  user: consul
+  group: consul
+  create_user: true

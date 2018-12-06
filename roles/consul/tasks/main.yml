@@ -1,0 +1,53 @@
+---
+- name: Copy consul binary
+  copy:
+    src: consul
+    dest: /usr/local/sbin/consul
+    mode: 0755
+    user: root
+    group: root
+  tags: ['consul']
+- name: Create consul user
+  user:
+    name: consul
+    create_home: false
+    system: yes
+    state: present
+  when: consul.create_user
+  tags: ['consul']
+- name: Create consul data directory
+  file:
+    path: /var/lib/consul
+    owner: consul
+    group: consul
+    state: directory
+  tags: ['consul']
+- name: Create consul config directory
+  file:
+    path: /etc/consul.d
+    owner: consul
+    group: consul
+    state: directory
+  tags: ['consul']
+- name: Create consul consul.hcf
+  template:
+    src: consul.hcl
+    dest: /etc/consul.d/consul.hcl
+    owner: consul
+    group: consul
+  tags: ['consul']
+- name: Create consul service file
+  copy:
+    src: consul.service
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: 0664
+  tags: ['consul']
+- name: start consul service
+  systemd:
+    daemon_reload: yes
+    name: consul
+    enabled: yes
+    state: started
+  tags: ['consul']
