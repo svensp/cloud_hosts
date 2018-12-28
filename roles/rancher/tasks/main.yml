@@ -18,6 +18,7 @@
       - name: rancher
     env:
       CATTLE_PROMETHEUS_EXPORTER: "{% if enable_prometheus == true %}true{% else %}false{% endif %}"
+      JAVA_OPTS: "-Xmx{{ max_memory }}"
     published_ports:
       - "{{ ansible_default_ipv4.address }}:9108:9108"
       - "{{ ansible_default_ipv4.address }}:9345:9345"
