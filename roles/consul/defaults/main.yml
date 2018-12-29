@@ -1,0 +1,6 @@
+data_center: "datacenter"
+extra_addresses: []
+consul:
+  user: consul
+  group: consul
+  create_user: true

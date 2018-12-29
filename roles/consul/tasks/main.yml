@@ -1,0 +1,179 @@
+---
+- name: Create files
+  file:
+    path: "{{ item }}"
+    state: directory
+  delegate_to: localhost
+  become: false
+  run_once: true
+  loop:
+  - files
+  - files/consul
+  - files/consul/certs
+  - files/consul/client
+  tags: ['consul']
+- name: Check if ca cert exists
+  stat:
+    path: files/consul/certs/ca.cert.pem
+  delegate_to: localhost
+  become: false
+  register: cacert
+  run_once: true
+  tags: ['consul']
+- name: create ca cert
+  shell: |
+    openssl genrsa -passout env:PASSWORD -des3 -out files/consul/certs/ca.key.pem  4096
+    openssl req \
+      -passin env:PASSWORD \
+      -key files/consul/certs/ca.key.pem \
+      -new -x509 \
+      -days 7300 \
+      -sha256 \
+      -out files/consul/certs/ca.cert.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ organization }} consul ca'
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  when: not cacert.stat.exists
+  run_once: true
+  tags: ['consul']
+- name: Check if server cert exists
+  stat:
+    path: "files/consul/certs/{{ ansible_hostname }}.cert.pem"
+  delegate_to: localhost
+  become: false
+  register: servercert
+  tags: ['consul']
+- name: Create server cert
+  shell: |
+    openssl genrsa -out files/consul/certs/{{ ansible_hostname }}.key.pem 4096
+    openssl req \
+      -key files/consul/certs/{{ ansible_hostname }}.key.pem \
+      -new \
+      -sha256 \
+      -out files/consul/certs/{{ ansible_hostname }}.csr.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ ansible_fqdn }}'
+    openssl x509 \
+      -req \
+      -days 1825 \
+      -sha256 \
+      -in files/consul/certs/{{ ansible_hostname }}.csr.pem \
+      -out files/consul/certs/{{ ansible_hostname }}.cert.pem \
+      -CAcreateserial \
+      -CA files/consul/certs/ca.cert.pem \
+      -CAkey files/consul/certs/ca.key.pem \
+      -passin env:PASSWORD
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  when: not servercert.stat.exists
+  tags: ['consul']
+- name: Check if client client certs exist
+  stat:
+    path: "files/consul/client/{{ item }}.cert.pem"
+  delegate_to: localhost
+  become: false
+  register: client_client_certs
+  run_once: true
+  tags: ['consul']
+  loop: '{{ certs }}'
+- name: Create client client certs
+  shell: |
+    openssl genrsa -out files/consul/client/{{ item.item }}.key.pem 4096
+    openssl req \
+      -key files/consul/client/{{ item.item }}.key.pem \
+      -new \
+      -sha256 \
+      -out files/consul/client/{{ item.item }}.csr.pem \
+      -subj '/C={{ country }}/ST={{ city }}/L={{ city }}/O={{ organization }}/OU={{ organization_unit}}/CN={{ item.item }}'
+    openssl x509 \
+      -req \
+      -days 1825 \
+      -sha256 \
+      -in files/consul/client/{{ item.item }}.csr.pem \
+      -out files/consul/client/{{ item.item }}.cert.pem \
+      -CAcreateserial \
+      -CA files/consul/certs/ca.cert.pem \
+      -CAkey files/consul/certs/ca.key.pem \
+      -passin env:PASSWORD
+  environment:
+    PASSWORD: '{{ ca_password }}'
+  delegate_to: localhost
+  become: false
+  tags: ['consul']
+  when: not item.stat.exists
+  run_once: true
+  loop: '{{ client_client_certs.results }}'
+- name: Copy consul binary
+  copy:
+    src: consul
+    dest: /usr/local/sbin/consul
+    mode: 0755
+    owner: root
+    group: root
+  tags: ['consul']
+- name: Create consul user
+  user:
+    name: consul
+    create_home: false
+    system: yes
+    state: present
+  when: consul.create_user
+  tags: ['consul']
+- name: Create consul data directory
+  file:
+    path: /var/lib/consul
+    owner: consul
+    group: consul
+    state: directory
+  tags: ['consul']
+- name: Create consul config directory
+  file:
+    path: /etc/consul.d
+    owner: consul
+    group: consul
+    state: directory
+  tags: ['consul']
+- name: Create consul config data directory
+  file:
+    path: /etc/consul
+    owner: consul
+    group: consul
+    state: directory
+  tags: ['consul']
+- name: Copy certs
+  copy:
+    src: "files/consul/certs/{{ item.local }}"
+    dest: "/etc/consul/{{ item.remote }}"
+    mode: 0600
+    owner: consul
+    group: consul
+  tags: ['consul']
+  loop:
+    - { local: "ca.cert.pem", remote: "cacert.pem" }
+    - { local: "{{ ansible_hostname }}.cert.pem", remote: "cert.pem" }
+    - { local: "{{ ansible_hostname }}.key.pem", remote: "key.pem" }
+- name: Create consul consul.hcf
+  template:
+    src: consul.hcl
+    dest: /etc/consul.d/consul.hcl
+    owner: consul
+    group: consul
+  tags: ['consul']
+- name: Create consul service file
+  copy:
+    src: consul.service
+    dest: /etc/systemd/system/consul.service
+    owner: root
+    group: root
+    mode: 0664
+  tags: ['consul']
+- name: start consul service
+  systemd:
+    daemon_reload: yes
+    name: consul
+    enabled: yes
+    state: started
+  tags: ['consul']

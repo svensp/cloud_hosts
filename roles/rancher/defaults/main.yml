@@ -6,3 +6,4 @@ challenge: http
 traefik_envs: []
 extra_ports: []
 enable_prometheus: false
+max_memory: 1024m
