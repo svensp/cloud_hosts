@@ -1,0 +1,10 @@
+{
+	"log-driver": "{{ log_driver }}",
+	{% if log_driver == "json-file" %}
+	"log-opts": {
+		"max-size": "{{ log_max_size }}",
+		"max-file": {{ log_max_files }}
+	},
+	{% endif %}
+	"live-restore": true
+}

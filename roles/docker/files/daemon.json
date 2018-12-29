@@ -1,4 +1,0 @@
-{
-	"log-driver": "journald",
-	"live-restore": true
-}
