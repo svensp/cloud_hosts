@@ -35,7 +35,7 @@
     user: root
     cron_file: 'update_auto_reboot'
     disabled: "{{ not auto_restart }}"
-    job: "test -f /var/run/reboot-required && shutdown -r now"
+    job: "test -f /var/run/reboot-required && /sbin/shutdown -r now"
     hour: "{{ restart.hour }}"
     minute: "{{ restart.minute }}"
     weekday: "{{ ansible_play_batch.index(inventory_hostname) + 1 % 7 }}"
