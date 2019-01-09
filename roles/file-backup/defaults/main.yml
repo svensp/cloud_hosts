@@ -1,4 +1,4 @@
-ignore_file: .borgignore
+ignore_file: .backupignore
 keyfile: /usr/local/lib/file_backup/key
 key_directory: "file_backup"
 cron:
