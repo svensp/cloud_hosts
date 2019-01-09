@@ -1,9 +1,11 @@
 ---
 - name: Copy node_exporter executable
   copy:
-    src: node_exporter
+    src: "node_exporter-{{ version }}"
     dest: /usr/local/sbin/node_exporter
     mode: 0755
+  notify:
+    - node-exporter-updated
   tags: ['node-exporter']
 - name: create node_exporter user
   user:
