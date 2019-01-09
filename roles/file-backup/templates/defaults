@@ -1,3 +1,4 @@
+IGNORE_FILE="{{ ignore_file }}"
 KEEP_BACKUPS_FOR="{{ keep_backups_for }}"
 KEYFILE=${KEYFILE:-'{{ keyfile }}'}
 BORG_PASSPHRASE=${BORG_PASSPHRASE:-'{{ borg_passphrase }}'}

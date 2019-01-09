@@ -118,9 +118,9 @@ create() {
 		log "${LOG_INFO}" "Creating backup in ${REPOSITORY}"
 
 		if [ "${SILENT}" = "TRUE" ] ; then
-			BORG_REPO="${REPOSITORY}" borg create "::$NAME" $TARGETS > /dev/null
+			BORG_REPO="${REPOSITORY}" borg create --exclude-if-present "${IGNORE_FILE}" "::$NAME" $TARGETS > /dev/null
 		else
-			BORG_REPO="${REPOSITORY}" borg create --stats "::$NAME" $TARGETS
+			BORG_REPO="${REPOSITORY}" borg create --exclude-if-present "${IGNORE_FILE}" --stats "::$NAME" $TARGETS
 		fi
 	done
 
