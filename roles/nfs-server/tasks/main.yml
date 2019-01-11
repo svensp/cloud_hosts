@@ -1,7 +1,9 @@
 ---
 - name: Install kernel nfs server
   apt:
-    name: nfs-kernel-server
+    name:
+      - nfs-kernel-server
+      - quota
     state: present
   tags: ['nfs-server']
 - name: Set nfsdargs grace-time and lease-time
