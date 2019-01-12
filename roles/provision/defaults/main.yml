@@ -1,2 +1,5 @@
 root: root
 root_type: ext4
+volume_groups:
+  - name: vg0
+    size: all

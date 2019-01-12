@@ -1,6 +1,6 @@
 ---
 - name: Install if system is in rescue mode
-  shell: "/root/.oldroot/nfs/install/installimage -a -n {{ inventory_hostname }} -b grub -r no -p /boot:ext4:256M,lvm:vg0:all -v {% for item in volumes %}{%- if not loop.first -%},{%- endif -%}vg0:{{ item.name }}:{{ item.mountpoint }}:{{ item.fs }}:{{ item.size }}{%- endfor %} -d sda -t yes -i /root/.oldroot/nfs/install/../images/Debian-9?-stretch-64-minimal.tar.gz"
+  shell: "/root/.oldroot/nfs/install/installimage -a -n {{ inventory_hostname }} -b grub -r no -p /boot:ext4:256M{% for item in volume_groups %},lvm:{{ item.name }}:{{ item.size }}{% endfor %} -v {% for item in volumes %}{%- if not loop.first -%},{%- endif -%}{{ item.volume_group | default('vg0') }}:{{ item.name }}:{{ item.mountpoint }}:{{ item.fs }}:{{ item.size }}{%- endfor %} -d sda -t yes -i /root/.oldroot/nfs/install/../images/Debian-9?-stretch-64-minimal.tar.gz"
   when: 'ansible_hostname == "rescue"'
 - name: mount root
   mount:
