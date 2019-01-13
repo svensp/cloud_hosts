@@ -6,5 +6,15 @@
 		"max-file": "{{ log_max_files }}"
 	},
 	{% endif %}
+	{% if storage_driver is not undefined %}
+	"storage-driver":"{{ storage_driver }}"
+	{% if storage_opts|count %}
+	"storage-opts":{
+		{% for option, value option in storage_opts %}
+		"{{ option }}":"{{ value }}"{% if not loop.last %},{% endif %}
+		{% endfor %}
+	}
+	{% endif %}
+	{% endif %}
 	"live-restore": true
 }

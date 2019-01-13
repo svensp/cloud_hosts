@@ -1,3 +1,4 @@
 log_driver: journald
 log_max_size: 50m
 log_max_files: 1
+storage_opts: []
