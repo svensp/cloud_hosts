@@ -1,3 +1,4 @@
+#jinja2: lstrip_blocks: "true", trim_blocks: "false"
 {
 	"log-driver": "{{ log_driver }}",
 	{% if log_driver == "json-file" %}
@@ -7,13 +8,13 @@
 	},
 	{% endif %}
 	{% if storage_driver is not undefined %}
-	"storage-driver":"{{ storage_driver }}"
+	"storage-driver":"{{ storage_driver }}",
 	{% if storage_opts|count %}
-	"storage-opts":{
-		{% for option, value option in storage_opts %}
-		"{{ option }}":"{{ value }}"{% if not loop.last %},{% endif %}
-		{% endfor %}
-	}
+	"storage-opts":[
+{% for option in storage_opts %}
+		"{{ option }}"{% if not loop.last %},{% endif %}
+{% endfor %}
+	],
 	{% endif %}
 	{% endif %}
 	"live-restore": true
