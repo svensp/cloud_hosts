@@ -2,12 +2,16 @@
 ---
 - name: Install base tools
   apt:
-    name: "{{ item }}"
-    state: latest
-  with_items:
+    name:
     - zsh
     - sudo
     - rsync
     - git
     - lvm2
+    - tzdata
+    state: latest
   tags: ['apt', 'base']
+- name: Set Timzeone
+  timezone:
+    name: "{{ timezone }}"
+  tags: ['timezone', 'base']
