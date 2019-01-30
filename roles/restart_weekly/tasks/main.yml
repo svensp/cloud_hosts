@@ -1,0 +1,12 @@
+---
+- name: Regular reboot
+  cron:
+    name: regular_reboot
+    cron_file: regular_reboot
+    user: root
+    job: "{{ test_command }} && /sbin/shutdown -r now"
+    state: present
+    minute: 30
+    hour: 0
+    weekday: "{{ ansible_play_batch.index(inventory_hostname) + 1 % 7 }}"
+  tags: ['restart-weekly']
