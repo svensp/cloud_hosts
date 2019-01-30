@@ -1,0 +1,1 @@
+0 */10 * * * root /usr/bin/mysql -uroot -e 'update DATABASECHANGELOGLOCK set LOCKED="", LOCKGRANTED=null, LOCKEDBY=null where ID=1 AND LOCKGRANTED < (NOW() - INTERVAL 1 HOUR);' {{ rancher_db }}

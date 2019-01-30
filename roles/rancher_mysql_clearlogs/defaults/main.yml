@@ -1,0 +1,4 @@
+rancher_db: rancher_db
+resource:
+  name: rancher-clear-locks
+  parent: mysql-server

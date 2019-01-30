@@ -1,16 +1,25 @@
 ---
+- name: Add or modify hard nofile limits for wildcard domain
+  pam_limits:
+    domain: '*'
+    limit_type: soft
+    limit_item: nofile
+    value: 8192
+  tags: ['mysql','mysql-backup']
 - name: Upload xtradebug package
   copy:
     src: xtrabackup.stretch_amd64.deb
     dest: /tmp/xtrabackup.deb
   tags: ['mysql','mysql-backup']
   when: tool == 'xtrabackup'
+  tags: ['mysql','mysql-backup']
 - name: install xtrabackup
   apt:
     deb: /tmp/xtrabackup.deb
     state: present
   tags: ['mysql','mysql-backup']
   when: tool == 'xtrabackup'
+  tags: ['mysql','mysql-backup']
 - name: Install mariadb-backup package
   apt:
     name: "{{ versions[version].package }}"
@@ -20,6 +29,7 @@
   apt:
     name: lftp
     state: present
+  tags: ['mysql','mysql-backup']
   tags: ['mysql','mysql-backup']
 - name: copy mysql_backup
   copy:

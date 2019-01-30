@@ -28,3 +28,6 @@ sftp_user: "root"
 sftp_password: ""
 sftp_key: "/usr/local/lib/mysql_backup/key"
 fetch_key: true
+
+set_ulimits: true
+nofiles: 8192

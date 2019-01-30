@@ -1,0 +1,35 @@
+---
+- name: Make sure /etc/cron.cluster exists
+  file:
+    path: /etc/cron.cluster
+    state: directory
+    owner: root
+    mode: 755
+  tags: ['rancher-mysql-clearlocks']
+- name: copy clear_rancher_locks cron file
+  template:
+    src: clear_rancher_locks
+    dest: /etc/cron.cluster/clear_rancher_locks
+    mode: 0644
+    owner: root
+  tags: ['rancher-mysql-clearlocks']
+- name: Create clear_rancher_locks crontab resource
+  pcs_resource:
+    name: "{{ resource.name }}"
+    state: present
+    resource_type: "ocf:heartbeat:symlink"
+    options: "link=/etc/cron.d/rancher_clear_locks target=\"/etc/cron.cluster/clear_rancher_locks\" backup_suffix=\".disabled\" meta failure-timeout=10"
+  run_once: true
+  tags: ['rancher-mysql-clearlocks']
+- name: Create clear_rancher_locks cluster colocation constraint
+  pcs_constraint_colocation:
+    resource1: "{{ resource.name }}"
+    resource2: "{{ resource.parent }}"
+  run_once: true
+  tags: ['rancher-mysql-clearlocks']
+- name: Create clear_rancher_locks cluster order constraint
+  pcs_constraint_order:
+    resource1: "{{ resource.parent }}"
+    resource2: "{{ resource.name }}"
+  run_once: true
+  tags: ['rancher-mysql-clearlocks']
