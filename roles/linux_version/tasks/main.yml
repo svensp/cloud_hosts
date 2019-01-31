@@ -1,0 +1,10 @@
+---
+- name: Add backports
+  apt_repository:
+    repo: "deb http://ftp.debian.org/debian stretch-backports main"
+- name: Install Image
+  apt:
+    name: "linux-image-{{ version }}.*.1-amd64"
+    state: latest
+    update_cache: true
+    default_release: stretch-backports
