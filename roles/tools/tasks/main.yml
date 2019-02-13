@@ -1,16 +1,16 @@
 ---
 - name: Install Tools
   apt:
-    name: "{{ item }}"
+    name: 
+    - screen
+    - vim
+    - git
+    - unattended-upgrades
+    - apt-listchanges
+    - logrotate
+    - fail2ban
     state: latest
   tags: [ 'tools' ]
-  with_items:
-  - screen
-  - vim
-  - git
-  - unattended-upgrades
-  - apt-listchanges
-  - logrotate
 - name: Copy unattended-upgrades config
   template:
     src: 50unattended-upgrades
