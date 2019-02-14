@@ -111,6 +111,10 @@ innodb_buffer_pool_instances={{ innodb_buffer_pool_instances }}
 skip_name_resolve
 {% endif %}
 
+{% if sql_mode is defined %}
+sql_mode = "{{ sql_mode }}"
+{% endif %}
+
 #
 # * Security Features
 #
