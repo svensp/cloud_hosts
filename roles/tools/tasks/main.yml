@@ -33,6 +33,7 @@
   cron:
     state: present
     user: root
+    name: "reboot one machine per weekday when update requires reboot"
     cron_file: 'update_auto_reboot'
     disabled: "{{ not auto_restart }}"
     job: "test -f /var/run/reboot-required && /sbin/shutdown -r now"

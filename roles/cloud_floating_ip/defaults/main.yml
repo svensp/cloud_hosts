@@ -1,4 +1,4 @@
-interval: '40s'
-timeout: '120s'
+interval: '60s'
+timeout: '180s'
 permanent: false
 stickyness: 100
