@@ -4,6 +4,9 @@ if [ -z "${SLACK_URL}" ] ; then
 	SLACK_URL=$(cat /etc/slack.url)
 fi
 
+if [ -z "${SLACK_NOTIFY_USERS}" ] ; then
+	SLACK_NOTIFY_USERS=$(cat /etc/slack.notify_users)
+fi
 
 function post_to_slack () {
   # format message as a code block ```${msg}```
@@ -25,7 +28,7 @@ function post_to_slack () {
       ;;
   esac
 
-  curl -X POST --data "payload={\"text\": \"${SLACK_ICON} ${SLACK_MESSAGE}\"}" ${SLACK_URL}
+  curl -X POST --data "payload={\"text\": \"${SLACK_ICON} ${SLACK_NOTIFY_USERS} ${SLACK_MESSAGE}\"}" ${SLACK_URL}
 }
 
 args=( "$@" )

@@ -1,0 +1,1 @@
+{% for user in slack_notify_users %}<@{{ user }}> {% endfor %}

@@ -1,1 +1,19 @@
 - name: create /etc/slack.url
+  template:
+    src: slack.url
+    dest: /etc/slack.url
+  tags:
+    - slack-notifications
+- name: create /etc/slack.notify_users
+  template:
+    src: slack.notify_users
+    dest: /etc/slack.notify_users
+  tags:
+    - slack-notifications
+- name: add slack-message script
+  copy:
+    src: slack-message
+    dest: /usr/local/bin/slack-message
+    mode: 0755
+  tags:
+    - slack-notifications
