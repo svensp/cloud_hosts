@@ -5,7 +5,7 @@
 #
 # Saves and reads via sftp / scp
 # Use Case: save to hetzner storagebox
-# 
+#
 ################################################################################
 
 if [ -f "${DEFAULTS}" ] ; then
@@ -81,8 +81,8 @@ fs_download() {
 	fi
 
 	scp -q -r -i "${SFTP_KEY}" \
-		"${SFTP_USER}@${SFTP_SERVER}:${SFTP_ROOT_DIRECTORY}/${IDENTIFIER}/." \
-		"${TARGET_DIRECTORY}" 
+		"${SFTP_USER}@${SFTP_SERVER}:${SFTP_ROOT_DIRECTORY}/${IDENTIFIER}/*" \
+		"${TARGET_DIRECTORY}"
 }
 
 #
@@ -144,7 +144,7 @@ fs_delete() {
 		log "${LOG_ERROR}" "fs_delete: Identifier parameter not given"
 		exit 2;
 	fi
-	
+
 	LFTP_PASSWORD= lftp \
 		-c "set sftp:connect-program \"ssh -a -x -i ${SFTP_KEY}\" \
 		; connect --env-password sftp://${SFTP_USER}@${SFTP_SERVER}/${SFTP_ROOT_DIRECTORY} \
