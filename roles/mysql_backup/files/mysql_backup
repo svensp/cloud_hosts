@@ -239,7 +239,7 @@ restore_incremental() {
 	fi
 
 	IFS='
-'
+ '
 
 	#
 	# Download and prepare the first entry as the full-backup base

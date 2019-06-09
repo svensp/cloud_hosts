@@ -1,0 +1,36 @@
+#!/bin/bash
+
+if [ -z "${SLACK_URL}" ] ; then
+	SLACK_URL=$(cat /etc/slack.url)
+fi
+
+if [ -z "${SLACK_NOTIFY_USERS}" ] ; then
+	SLACK_NOTIFY_USERS=$(cat /etc/slack.notify_users)
+fi
+
+function post_to_slack () {
+  # format message as a code block ```${msg}```
+  SLACK_MESSAGE="\`\`\`$2\`\`\`"
+
+  case "$1" in
+    INFO)
+      SLACK_ICON=':slack:'
+      ;;
+    WARNING)
+      SLACK_ICON=':warning:'
+      ;;
+    ERROR)
+      SLACK_ICON=':bangbang:'
+      ;;
+    *)
+	  SLACK_MESSAGE="\`\`\`$1 $2\`\`\`"
+      SLACK_ICON=':slack:'
+      ;;
+  esac
+
+  curl -X POST --data "payload={\"text\": \"${SLACK_ICON} ${SLACK_NOTIFY_USERS} ${SLACK_MESSAGE}\"}" ${SLACK_URL}
+}
+
+args=( "$@" )
+post_to_slack "${args[0]}" "${args[@]:1}"
+exit 0
