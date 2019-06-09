@@ -3,3 +3,4 @@ ini_section: pacemaker
 clustername: cmdcluster
 disable_stonith: false
 stickyness: 100
+timeout: 10000

@@ -89,7 +89,7 @@
   when: clusterexists.rc != 0
   tags: ['cluster', 'create']
 - name: "Setup cluster"
-  command: "pcs cluster setup --force --name {{ clustername }} {% for item in ansible_play_hosts %} {{ item }}{% endfor %}"
+  command: "pcs cluster setup --force --name {{ clustername }} --token {{ timeout }} {% for item in ansible_play_hosts %} {{ item }}{% endfor %}"
   run_once: true
   when: clusterexists.rc != 0
   tags: ['cluster', 'create']

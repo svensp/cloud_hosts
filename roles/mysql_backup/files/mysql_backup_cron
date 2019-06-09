@@ -38,4 +38,8 @@ case ${MODE} in
 		mysql_backup DELETE "$(date --date="4 weeks ago" +"%Y-%m-%d")"
 		exit $?
 		;;
+	HAS_YESTERDAY)
+		mysql_backup LIST | grep $(date --date=yesterday +"%Y-%m-%d") > /dev/null
+		exit $?
+		;;
 esac
