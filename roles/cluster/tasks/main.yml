@@ -10,7 +10,7 @@
   lineinfile:
     dest: '/etc/hosts'
     regexp: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} "
-    line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['ansible_fqdn'] }}"
+    line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['ansible_hostname'] }} {{ hostvars[item]['ansible_fqdn'] }}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
 - name: Install Pacemaker + Corosync
@@ -84,14 +84,14 @@
   tags: ['cluster', 'create']
 - name: Authorize cluster nodes
   pcs_auth:
-    node_name: "{{ hostvars[item]['ansible_fqdn'] }}"
+    node_name: "{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname']  }}{% endif %}"
     username: "hacluster"
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
 - name: Setup cluster
   pcs_cluster:
-    node_list: "{% for item in play_hosts %}{{ hostvars[item]['ansible_fqdn'] }} {% endfor %}"
+    node_list: "{% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname'] }}{% endif %} {% endfor %}"
     cluster_name: "{{ clustername }}"
     transport: "udpu"
     token: "{{ timeout }}"

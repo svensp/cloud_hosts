@@ -6,3 +6,4 @@ stickyness: 100
 timeout: 10000
 allow_cluster_expansion: true
 force_password_override: false
+use_fqdn: true
