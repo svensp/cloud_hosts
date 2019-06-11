@@ -95,6 +95,7 @@
   register: fingerprint
   when: plugin == "scp" and fetch_key
   tags: ['mysql','mysql-backup']
+  changed_when: false
 - name: Add backup server ssh fingerprint
   known_hosts:
     name: "{{ sftp_server.split(':')[0] }}"
