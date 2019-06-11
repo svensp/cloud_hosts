@@ -1,0 +1,11 @@
+---
+- name: install cloud utils
+  apt:
+    name: cloud-utils
+    state: present
+  tags: ['cloud_guest']
+- name: install qemu-guest-agent
+  apt:
+    name: qemu-guest-agent
+    state: present
+  tags: ['cloud_guest']

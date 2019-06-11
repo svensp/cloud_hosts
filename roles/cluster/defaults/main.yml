@@ -4,3 +4,5 @@ clustername: cmdcluster
 disable_stonith: false
 stickyness: 100
 timeout: 10000
+allow_cluster_expansion: true
+force_password_override: false

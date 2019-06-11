@@ -1,4 +1,18 @@
 ---
+- name: Check if cluster consist of at least 2 nodes
+  fail:
+    msg: 'Cluster must have at least 2 members'
+  when: play_hosts|count() < 2
+  run_once: true
+  tags: ['cluster', 'create']
+
+- name: Add hosts to /etc/hosts
+  lineinfile:
+    dest: '/etc/hosts'
+    regexp: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} "
+    line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['ansible_fqdn'] }}"
+  with_items: "{{ play_hosts }}"
+  tags: ['cluster', 'create']
 - name: Install Pacemaker + Corosync
   apt:
     name: "{{ item }}"
@@ -29,6 +43,7 @@
       password={{ cluster_user_password }}
   delegate_to: localhost
   when: "cluster_ini_exists.rc != 0 and cluster_user_password is defined and cluster_user_password != ''"
+  tags: ['cluster', 'create']
 - name: Create cluster.ini
   shell: "(echo '[{{ ini_section }}]'; echo -n 'password=' ; cat /dev/urandom | tr -dc _A-Z-a-z-0-9 | head -c${1:-32}) > {{ ini_file }}"
   delegate_to: localhost
@@ -58,7 +73,7 @@
   user:
     name: hacluster
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file)|password_hash('sha512') }}"
-    update_password: always
+    update_password: "{% if force_password_override %}always{% else %}on_create{% endif %}"
   tags: ['cluster', 'user']
 - name: Check if host is already part of cluster
   command: "grep -q 'cluster_name: {{ clustername }}' /etc/corosync/corosync.conf"
@@ -67,61 +82,77 @@
   ignore_errors: yes
   changed_when: no
   tags: ['cluster', 'create']
-- name: Stop running pacemaker
-  systemd:
-    name: pacemaker
-    state: stopped
-  when: clusterexists.rc != 0
+- name: Authorize cluster nodes
+  pcs_auth:
+    node_name: "{{ hostvars[item]['ansible_fqdn'] }}"
+    username: "hacluster"
+    password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
+  with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
-- name: Stop running corosync
-  systemd:
-    name: corosync
-    state: stopped
-  when: clusterexists.rc != 0
-  tags: ['cluster', 'create']
-- name: Remove debian default corosync.conf
-  file:
-    path: /etc/corosync/corosync.conf
-    state: absent
-  when: clusterexists.rc != 0
-- name: "Connect cluster nodes"
-  command: "pcs cluster auth{% for item in ansible_play_hosts %} {{ item }}{% endfor %} -u hacluster -p {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
-  when: clusterexists.rc != 0
-  tags: ['cluster', 'create']
-- name: "Setup cluster"
-  command: "pcs cluster setup --force --name {{ clustername }} --token {{ timeout }} {% for item in ansible_play_hosts %} {{ item }}{% endfor %}"
+- name: Setup cluster
+  pcs_cluster:
+    node_list: "{% for item in play_hosts %}{{ hostvars[item]['ansible_fqdn'] }} {% endfor %}"
+    cluster_name: "{{ clustername }}"
+    transport: "udpu"
+    token: "{{ timeout }}"
+    allowed_node_changes: "{% if allow_cluster_expansion|bool %}add{% else %}none{% endif %}"
   run_once: true
-  when: clusterexists.rc != 0
   tags: ['cluster', 'create']
-- name: Start Corosync
+
+- name: Enable Services
   systemd:
-    name: corosync
+    name: "{{ item }}"
+    enabled: true
+  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-start']
+  with_items:
+  - corosync
+  - pacemaker
+- name: Start Services
+  systemd:
+    name: "{{ item }}"
     state: started
   tags: ['cluster', 'systemd', 'corosync', 'systemd-start']
-- name: Start Pacemaker
-  systemd:
-    name: pacemaker
-    state: started
-  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-start']
-- name: Enable starting Corosync at boot
-  systemd:
-    name: corosync
-    enabled: true
-  tags: ['cluster', 'systemd', 'corosync', 'systemd-enable']
-- name: Enable starting Pacemaker at boot
-  systemd:
-    name: pacemaker
-    enabled: true
-  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-enable']
+  with_items:
+  - corosync
+  - pacemaker
+
 - name: Set stickyness to prevent resources from moving unnecessarily
   command: "pcs resource defaults resource-stickyness={{ stickyness }}"
   run_once: true
   changed_when: no
   tags: ['cluster', 'pacemaker', 'stickyness']
-- name: "Disable stonith"
-  command: "pcs property set stonith-enabled=false"
-  run_once: true
-  when:
-  - clusterexists.rc != 0
-  - disable_stonith
-  tags: ['cluster', 'pcs']
+
+- name: Check if timeout absent
+  shell: "grep -w token: /etc/corosync/corosync.conf"
+  register: token_timeout_is_absent
+  failed_when: false
+  changed_when: token_timeout_is_absent.rc != 0
+  tags: ['cluster', 'pacemaker', 'cluster-timeout']
+- name: Add token timeout
+  replace:
+    regexp: '(totem\s*{[\w\W]*?)(})'
+    replace: '\1    token: {{ timeout }}\n\2'
+    path: "/etc/corosync/corosync.conf"
+  tags: ['cluster', 'pacemaker', 'cluster-timeout']
+  register: timeout_added
+  when: token_timeout_is_absent.changed
+
+- name: Check if timeout is current
+  shell: "grep -w token: /etc/corosync/corosync.conf | grep -w '{{ timeout }}'"
+  register: token_timeout_is_current
+  failed_when: false
+  changed_when: token_timeout_is_current.rc != 0
+  tags: ['cluster', 'pacemaker', 'cluster-timeout']
+- name: Update timeout
+  replace:
+    regexp: 'token: .*'
+    replace: 'token: {{ timeout }}'
+    path: /etc/corosync/corosync.conf
+  register: timeout_updated
+  tags: ['cluster', 'pacemaker', 'cluster-timeout']
+  when: token_timeout_is_current.changed
+
+- name: Restart corosync
+  shell: "pcs cluster reload corosync"
+  tags: ['cluster', 'pacemaker', 'cluster-timeout']
+  when: timeout_updated is defined and timeout_updated.changed or timeout_added is defined and timeout_added.changed
