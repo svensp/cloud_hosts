@@ -1,4 +1,11 @@
 ---
+- name: Add PATH to the reboot crontab
+  cron:
+    cron_file: regular_reboot
+    name: PATH
+    env: yes
+    job: /usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+  tags: ['restart-weekly']
 - name: Regular reboot
   cron:
     name: regular_reboot
