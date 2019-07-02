@@ -11,7 +11,7 @@
     name: regular_reboot
     cron_file: regular_reboot
     user: root
-    job: "{{ test_command }} && /sbin/shutdown -r now"
+    job: "{{ test_command }} && shutdown -r now"
     state: present
     minute: 30
     hour: 0
