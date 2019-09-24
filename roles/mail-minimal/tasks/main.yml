@@ -11,6 +11,12 @@
     dest: /etc/ssmtp/ssmtp.conf
     mode: 0600
   tags: [ 'email' ]
+- name: Copy revaliases config file
+  template:
+    src: revaliases
+    dest: /etc/ssmtp/revaliases
+    mode: 0600
+  tags: [ 'email' ]
 - name: install ssmtp
   apt:
     name: ssmtp
