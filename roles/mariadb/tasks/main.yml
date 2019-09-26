@@ -42,3 +42,11 @@
   environment:
     RUNLEVEL: 1
   tags: ['mysql', 'mariadb']
+- name: Install logrotate file
+  template:
+    src: logrotate-mysql
+    dest: /etc/logrotate.d/mysql
+    owner: root
+    group: root
+    mode: 0644
+  tags: ['mysql', 'mariadb']
