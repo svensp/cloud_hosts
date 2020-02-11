@@ -1,0 +1,12 @@
+#!/bin/bash
+
+KW=$(date --date="4 weeks ago" +%V)
+BACKUP_DIR="{{ backup.destination }}"
+KW_DIR="${BACKUP_DIR}/${KW}"
+
+if [ -d "${KW_DIR}" ] ; then
+	echo "Removing ${KW_DIR}"
+	rm -Rf "${KW_DIR}"
+else
+	echo "${KW_DIR} does not exist. Nothing to do."
+fi

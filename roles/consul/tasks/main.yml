@@ -177,3 +177,30 @@
     enabled: yes
     state: started
   tags: ['consul']
+- name: copy consul_backup
+  template:
+    src: consul_backup
+    dest: /usr/local/bin/consul_backup
+    mode: 0755
+    owner: root
+    group: root
+  tags: ['consul']
+  when: backup.enable
+- name: copy consul_clean
+  template:
+    src: consul_clean
+    dest: /usr/local/bin/consul_clean
+    mode: 0755
+    owner: root
+    group: root
+  tags: ['consul']
+  when: backup.enable
+- name: copy consul backup cron file
+  copy:
+    src: backup.cron
+    dest: /etc/cron.d/consul_backup
+    mode: 0644
+    owner: root
+    group: root
+  tags: ['consul']
+  when: backup.enable

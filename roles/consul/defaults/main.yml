@@ -1,5 +1,8 @@
 data_center: "datacenter"
 extra_addresses: []
+backup:
+  enable: true
+  destination: /consul-backup
 consul:
   user: consul
   group: consul

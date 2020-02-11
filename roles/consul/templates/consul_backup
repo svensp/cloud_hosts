@@ -1,0 +1,11 @@
+#!/bin/bash
+
+KW=$(date +%V)
+BACKUP_DIR="{{ backup.destination }}"
+KW_DIR="${BACKUP_DIR}/${KW}"
+
+if [ ! -d "${KW_DIR}" ] ; then
+	mkdir "${KW_DIR}"
+fi
+
+consul snapshot save "${KW_DIR}/$(date +%Y%m%d-%H%M).snap"
