@@ -1,3 +1,4 @@
+PATH=/sbin:/usr/local/bin:/usr/bin:/bin
 30 0 * * 0 root consul_clean
 30 0 * * * root consul_backup
 
