@@ -1,3 +1,3 @@
-30 0 * * sun root consul_clean
+30 0 * * 0 root consul_clean
 30 0 * * * root consul_backup
 
