@@ -1,4 +1,4 @@
 PATH=/usr/local/sbin:/sbin:/usr/local/bin:/usr/bin:/bin
-30 0 * * 0 root consul_clean
-30 0 * * * root consul_backup
+30 0 * * 0 root consul_clean > /dev/null 2>&1
+30 0 * * * root consul_backup > /dev/null 2>&1
 
