@@ -8,10 +8,10 @@
    copytruncate
     postrotate
        # just if mysqld is really running
-       if test -x /usr/bin/mysqladmin && \
-          /usr/bin/mysqladmin ping &>/dev/null
+       if test -x /usr/bin/mysqladmin > /dev/null 2>&1 && \
+          /usr/bin/mysqladmin ping > /dev/null 2>&1
        then
-          /usr/bin/mysqladmin flush-logs
+          /usr/bin/mysqladmin flush-logs > /dev/null 2>&1
        fi
     endscript
 }
