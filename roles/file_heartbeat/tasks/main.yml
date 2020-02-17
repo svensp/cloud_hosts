@@ -1,0 +1,33 @@
+- name: Ensure /usr/local/etc/cron.d exists
+  file:
+    path: "/usr/local/etc/cron.d"
+    state: directory
+  tags: [ 'heartbeat' ]
+- name: copy crontab to /usr/local/etc/cron.d/file_heartbeat
+  template:
+    src: crontab.tpl
+    dest: "/usr/local/etc/cron.d/{{ crontab_name }}"
+    owner: root
+    group: root
+    mode: 0600
+  tags: [ 'heartbeat' ]
+- name: Create file_hearbeat crontab resource
+  pcs_resource:
+    name: "{{ resource.name }}"
+    state: present
+    resource_type: "ocf:heartbeat:symlink"
+    options: "link=/etc/cron.d/{{ crontab_name }} target=\"/usr/local/etc/cron.d/{{ crontab_name }}\" backup_suffix=\".disabled\" meta failure-timeout=10"
+  run_once: true
+  tags: ['heartbeat']
+- name: Create file_heartbeat cluster colocation constraint
+  pcs_constraint_colocation:
+    resource1: "{{ resource.name }}"
+    resource2: "{{ resource.parent }}"
+  run_once: true
+  tags: ['heartbeat']
+- name: Create file_heartbeat cluster order constraint
+  pcs_constraint_order:
+    resource1: "{{ resource.parent }}"
+    resource2: "{{ resource.name }}"
+  run_once: true
+  tags: ['heartbeat']

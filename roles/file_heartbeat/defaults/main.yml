@@ -1,0 +1,5 @@
+crontab_name: file_heartbeat
+path: /mnt/file
+resource:
+  name: file_heartbeat
+  parent: file_mount
