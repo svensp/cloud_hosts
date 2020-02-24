@@ -107,11 +107,11 @@
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
-  when: pacemaker == 'v2'
+  when: pacemaker == 'v1'
 - name: Authorize cluster nodes
   shell: "pcs host auth {% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname']  }}{% endif %} {% endfor %} -u hacluster -p {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }} "
   tags: ['cluster', 'create']
-  when: pacemaker == 'v3'
+  when: pacemaker == 'v2'
 - name: Setup cluster
   pcs_cluster:
     node_list: "{% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname'] }}{% endif %} {% endfor %}"
@@ -122,7 +122,7 @@
   tags: ['cluster', 'create']
   when:
     - clusterexists.rc != 0
-    - pacemaker == 'v2'
+    - pacemaker == 'v1'
 - name: Setup cluster
   pcs_cluster:
     node_list: "{% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname'] }}{% endif %} addr={{ hostvars[item]['ansible_default_ipv4']['address'] }} {% endfor %}"
@@ -133,7 +133,7 @@
   tags: ['cluster', 'create']
   when:
     - clusterexists.rc != 0
-    - pacemaker == 'v3'
+    - pacemaker == 'v2'
 
 - name: Check if timeout absent
   shell: "grep -w token: /etc/corosync/corosync.conf"

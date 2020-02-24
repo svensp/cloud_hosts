@@ -6,5 +6,5 @@ stickyness: 100
 timeout: 10000
 allow_cluster_expansion: true
 force_password_override: false
-pacemaker: v2
+pacemaker: v1
 use_fqdn: true
