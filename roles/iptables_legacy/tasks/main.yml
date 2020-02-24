@@ -1,0 +1,4 @@
+- name: set iptables to legacy
+  alternatives:
+    name: iptables
+    path: /usr/sbin/iptables-legacy
