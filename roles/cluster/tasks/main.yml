@@ -15,14 +15,14 @@
   tags: ['cluster', 'create']
 - name: Install Pacemaker + Corosync
   apt:
-    name: "{{ item }}"
+    name:
+      - corosync
+      - pacemaker
+      - pcs
+      - pacemaker-cli-utils
+      - libxml2-utils
+      - python3-setuptools
     state: present
-  with_items:
-  - corosync
-  - pacemaker
-  - pcs
-  - pacemaker-cli-utils
-  - libxml2-utils
   environment:
     RUNLEVEL: 1
   tags: ['apt', 'cluster']
@@ -75,6 +75,24 @@
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file)|password_hash('sha512') }}"
     update_password: "{% if force_password_override %}always{% else %}on_create{% endif %}"
   tags: ['cluster', 'user']
+- name: check if debian default corosync.conf is pressent
+  command: "grep -q 'cluster_name: debian' /etc/corosync/corosync.conf"
+  register: debianconfig
+  check_mode: no
+  ignore_errors: yes
+  changed_when: no
+  tags: ['cluster', 'create']
+- name: Remove default debian corosync.conf
+  file:
+    path: /etc/corosync/corosync.conf
+    state: absent
+  when: debianconfig.rc == 0
+- name: Restart pcsd
+  systemd:
+    name: pcsd
+    state: started
+  tags: ['cluster', 'systemd', 'pcsd', 'systemd-start']
+  when: debianconfig.rc == 0
 - name: Check if host is already part of cluster
   command: "grep -q 'cluster_name: {{ clustername }}' /etc/corosync/corosync.conf"
   register: clusterexists
@@ -89,38 +107,33 @@
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
+  when: pacemaker == 'v2'
+- name: Authorize cluster nodes
+  shell: "pcs host auth {% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname']  }}{% endif %} {% endfor %} -u hacluster -p {{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }} "
+  tags: ['cluster', 'create']
+  when: pacemaker == 'v3'
 - name: Setup cluster
   pcs_cluster:
     node_list: "{% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname'] }}{% endif %} {% endfor %}"
     cluster_name: "{{ clustername }}"
     transport: "udpu"
-    token: "{{ timeout }}"
     allowed_node_changes: "{% if allow_cluster_expansion|bool %}add{% else %}none{% endif %}"
   run_once: true
   tags: ['cluster', 'create']
-
-- name: Enable Services
-  systemd:
-    name: "{{ item }}"
-    enabled: true
-  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-start']
-  with_items:
-  - corosync
-  - pacemaker
-- name: Start Services
-  systemd:
-    name: "{{ item }}"
-    state: started
-  tags: ['cluster', 'systemd', 'corosync', 'systemd-start']
-  with_items:
-  - corosync
-  - pacemaker
-
-- name: Set stickyness to prevent resources from moving unnecessarily
-  command: "pcs resource defaults resource-stickyness={{ stickyness }}"
+  when:
+    - clusterexists.rc != 0
+    - pacemaker == 'v2'
+- name: Setup cluster
+  pcs_cluster:
+    node_list: "{% for item in play_hosts %}{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname'] }}{% endif %} addr={{ hostvars[item]['ansible_default_ipv4']['address'] }} {% endfor %}"
+    cluster_name: "{{ clustername }}"
+    transport: "knet"
+    allowed_node_changes: "{% if allow_cluster_expansion|bool %}add{% else %}none{% endif %}"
   run_once: true
-  changed_when: no
-  tags: ['cluster', 'pacemaker', 'stickyness']
+  tags: ['cluster', 'create']
+  when:
+    - clusterexists.rc != 0
+    - pacemaker == 'v3'
 
 - name: Check if timeout absent
   shell: "grep -w token: /etc/corosync/corosync.conf"
@@ -151,6 +164,30 @@
   register: timeout_updated
   tags: ['cluster', 'pacemaker', 'cluster-timeout']
   when: token_timeout_is_current.changed
+
+- name: Enable Services
+  systemd:
+    name: "{{ item }}"
+    enabled: true
+  tags: ['cluster', 'systemd', 'pacemaker', 'systemd-start']
+  with_items:
+  - corosync
+  - pacemaker
+- name: Start Services
+  systemd:
+    name: "{{ item }}"
+    state: started
+  tags: ['cluster', 'systemd', 'corosync', 'systemd-start']
+  with_items:
+  - corosync
+  - pacemaker
+
+- name: Set stickyness to prevent resources from moving unnecessarily
+  command: "pcs resource defaults resource-stickyness={{ stickyness }}"
+  run_once: true
+  changed_when: no
+  tags: ['cluster', 'pacemaker', 'stickyness']
+
 
 - name: Restart corosync
   shell: "pcs cluster reload corosync"

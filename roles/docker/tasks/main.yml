@@ -1,17 +1,17 @@
 ---
 - name: Packages
   apt:
-    name: "{{ item }}"
+    update_cache: true
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg2
+      - software-properties-common
+      # python-docker is not necessary here, but installs the requirements to install `docker` via pip
+      - python-docker
+      - python-pip
     state: present
-  with_items:
-    - apt-transport-https
-    - ca-certificates
-    - curl
-    - gnupg2
-    - software-properties-common
-    # python-docker is not necessary here, but installs the requirements to install `docker` via pip
-    - python-docker
-    - python-pip
   tags: ['docker', 'apt']
 - name: Create /etc/docker/
   file:
