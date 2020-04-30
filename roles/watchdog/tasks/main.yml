@@ -1,0 +1,38 @@
+- name: Install watchdog daemon
+  apt:
+    name: watchdog
+    state: present
+  environment:
+    RUNLEVEL: '1'
+  tags: ['watchdog']
+- name: install no_oops helper
+  copy:
+    src: no_oops
+    dest: /usr/local/sbin/no_oops
+    owner: root
+    mode: 0755
+  tags: ['watchdog']
+- name: install watchdog defaults
+  copy:
+    src: watchdog
+    dest: /etc/default/wathcdog
+    owner: root
+    mode: 0644
+  tags: ['watchdog']
+- name: install watchdog config
+  copy:
+    src: watchdog.conf
+    dest: /etc/wathcdog.conf
+    owner: root
+    mode: 0644
+  tags: ['watchdog']
+- name: enable watchdog daemon on boot
+  systemd:
+    name: watchdog
+    enabled: true
+  tags: ['watchdog']
+- name: start watchdog daemon
+  systemd:
+    name: watchdog
+    state: started
+  tags: ['watchdog']

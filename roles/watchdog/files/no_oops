@@ -1,0 +1,6 @@
+#!/bin/sh
+if dmesg | grep -q -E 'RIP:.*zfs_range_unlock.*' ; then
+	exit 1
+fi
+
+exit 0
