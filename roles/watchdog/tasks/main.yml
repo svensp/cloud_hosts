@@ -15,14 +15,14 @@
 - name: install watchdog defaults
   copy:
     src: watchdog
-    dest: /etc/default/wathcdog
+    dest: /etc/default/watchdog
     owner: root
     mode: 0644
   tags: ['watchdog']
 - name: install watchdog config
   copy:
     src: watchdog.conf
-    dest: /etc/wathcdog.conf
+    dest: /etc/watchdog.conf
     owner: root
     mode: 0644
   tags: ['watchdog']
