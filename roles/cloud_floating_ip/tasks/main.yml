@@ -40,7 +40,7 @@
     name: "FloatingIP_{{ ip_name }}"
     state: present
     resource_type: "ocf:hetzner:FloatingIP "
-    options: "ip={{ floating_ip }} api_token={{ api_token }} op monitor interval={{ interval }} timeout={{ timeout }} start timeout={{ timeout }} meta resource-stickyness={{ stickyness }} failure-timeout=10 migration-threshold=3"
+    options: "ip={{ floating_ip }} api_token={{ api_token }} op monitor interval={{ interval }} on-fail=ignore timeout={{ timeout }} start timeout={{ timeout }} meta resource-stickyness={{ stickyness }} failure-timeout=10 migration-threshold=3"
   run_once: true
   tags: ['floating_ip', 'pcs', 'pcs-resource']
 - name: Create colocation

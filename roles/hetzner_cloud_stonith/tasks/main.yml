@@ -28,7 +28,7 @@
     name: "STONITH_{{ ansible_hostname }}"
     state: present
     resource_type: "stonith:external/hetzner_cloud"
-    options: "api_token={{ api_token }} op monitor timeout=60s interval=30s meta failure-timeout=10"
+    options: "api_token={{ api_token }} op monitor timeout=60s on-fail=ignore interval=30s meta failure-timeout=10"
   tags: ['cluster', 'stonith', 'hetzner']
 - name: wait for resources to be created
   pause:
