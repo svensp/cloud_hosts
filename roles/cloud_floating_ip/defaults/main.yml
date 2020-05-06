@@ -1,4 +1,5 @@
 interval: '60s'
 timeout: '180s'
+on_fail: 'ignore'
 permanent: false
 stickyness: 100
