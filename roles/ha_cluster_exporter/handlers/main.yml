@@ -1,0 +1,7 @@
+---
+- name: ha-cluster-exporter-updated
+  systemd:
+    daemon_reload: true
+    name: ha_cluster_exporter
+    state: restarted
+  tags: ['ha-cluster-exporter']

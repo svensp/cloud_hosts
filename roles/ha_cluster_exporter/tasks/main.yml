@@ -1,0 +1,33 @@
+---
+- name: Copy ha_cluster_exporter executable
+  copy:
+    src: "ha_cluster_exporter"
+    dest: /usr/bin/ha_cluster_exporter
+    mode: 0755
+    owner: root
+  notify:
+    - ha-cluster-exporter-updated
+  tags: ['ha-cluster-exporter']
+- name: create ha_cluster_exporter user
+  user:
+    create_home: no
+    name: ha_cluster_exporter
+    system: yes
+    state: present
+  tags: ['ha-cluster-exporter']
+- name: Copy ha_cluster_exporter.service systemd file
+  copy:
+    src: ha_cluster_exporter.service
+    dest: /etc/systemd/system/ha_cluster_exporter.service
+    mode: 644
+  tags: ['ha-cluster-exporter']
+- name: Enable ha_cluster_exporter systemd service
+  systemd:
+    name: ha_cluster_exporter
+    enabled: yes
+  tags: ['ha-cluster-exporter']
+- name: Enable ha_cluster_exporter systemd service
+  systemd:
+    name: ha_cluster_exporter
+    state: started
+  tags: ['ha-cluster-exporter']

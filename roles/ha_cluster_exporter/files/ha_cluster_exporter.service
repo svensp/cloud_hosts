@@ -1,0 +1,13 @@
+[Unit]
+Description=Prometheus exporter for Pacemaker HA clusters metrics
+Wants=pacemaker.service
+After=network.target pacemaker.service
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/ha_cluster_exporter
+ExecReload=/bin/kill -HUP $MAINPID
+
+[Install]
+WantedBy=multi-user.target
