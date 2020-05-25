@@ -20,6 +20,16 @@
     dest: /etc/systemd/system/node_exporter.service
     mode: 644
   tags: ['node-exporter']
+- name: Write options to /etc/default/node_exporter
+  template:
+    src: node_exporter
+    dest: /etc/default/node_exporter
+    mode: 0644
+    owner: root
+  tags: ['node-exporter']
+  notify:
+    - node-exporter-updated
+  tags: ['node-exporter']
 - name: Enable node_exporter systemd service
   systemd:
     name: node_exporter

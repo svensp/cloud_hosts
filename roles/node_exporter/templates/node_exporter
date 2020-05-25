@@ -1,0 +1,1 @@
+OPTIONS="{% for option in options %}--{{ option }}{% if not loop.last %} {% endif %}{% endfor %}"
