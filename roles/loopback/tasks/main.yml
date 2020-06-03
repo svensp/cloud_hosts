@@ -1,0 +1,29 @@
+---
+- name: Check if target exists
+  stat:
+    path: "{{ loopback_image }}"
+    get_checksum: no
+  register: "image_file"
+- name: Create image file
+  command: "dd if=/dev/zero of={{ loopback_image }} bs=1M count={{ size_in_mb }}"
+  when: not image_file.stat.exists
+- name: Create systemd service file to enable loopback file on start
+  template:
+    src: systemd.service
+    dest: "/etc/systemd/system/{{ name }}.service"
+  register: systemd
+- name: Check if loopback device is already registered
+  shell: "losetup | grep {{ loopback_device }}"
+  changed_when: loopback_exists.rc != 0
+  register: loopback_exists
+  failed_when: false
+- name: unregister loopback device
+  shell: "losetup -d {{ loopback_device }}"
+  when: systemd.changed and loopback_exists.rc == 0
+- name: Activate loopback device
+  systemd:
+    daemon_reload: true
+    enabled: true
+    state: restarted
+    name: "{{ name }}"
+  when: systemd.changed or loopback_exists.rc != 0

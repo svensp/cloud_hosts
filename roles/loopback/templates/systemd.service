@@ -1,0 +1,13 @@
+[Unit]
+Description=Activate loop device
+DefaultDependencies=no
+After=systemd-udev-settle.service
+Before=lvm2-activation-early.service
+Wants=systemd-udev-settle.service
+
+[Service]
+ExecStart=/sbin/losetup {{ loopback_device }} {{ loopback_image }}
+Type=oneshot
+
+[Install]
+WantedBy=local-fs.target

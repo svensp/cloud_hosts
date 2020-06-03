@@ -1,0 +1,4 @@
+name: loopback
+loopback_image: /var/loopback.img
+loopback_device: /dev/loop0
+size_in_mb: 2048
