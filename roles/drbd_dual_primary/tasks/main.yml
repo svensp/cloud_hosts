@@ -9,9 +9,13 @@
   fail: msg="Variable neither 'drbd_group' nor 'drbd_hosts' is defined"
   when: "'drbd_group' not in vars and 'drbd_hosts' not in vars"
   tags: ['drbd']
-- name: Install drbd utils
+- name: Install packages
   apt:
-    name: drbd-utils
+    update_cache: true
+    name:
+      - drbd-utils
+      - ocfs2-tools
+      - dlm-controld
     state: present
   tags: ['drbd', 'apt']
 - name: Install drbd global_common.conf
@@ -42,7 +46,7 @@
   tags: ['drbd', 'initialize']
 - name: Initialize drbd devices
   shell: "yes yes | drbdadm create-md {{ item.item.name }}"
-  when: "item.stdout.find('Diskless/') != -1"
+  when: "item.stdout.find('Unconfigured') != -1"
   with_items: "{{ uninitialized.results }}"
   tags: ['drbd', 'initialize', 'create-md']
 - name: Start drbd devices
@@ -76,7 +80,7 @@
   tags: ['drbd', 'initialize', 'sync']
 - name: 'Write filesystems on drbd device'
   filesystem:
-    fstype: ext4
+    fstype: ocfs2
     dev: "{{ item.item.drbd_device }}"
   when: "item.stdout.find('Primary/') != -1"
   with_items: "{{ primary.results }}"

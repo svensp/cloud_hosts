@@ -1,0 +1,4 @@
+resource_level_fencing: false
+ocfs:
+  name: ocfs-cluster
+  port: 7777

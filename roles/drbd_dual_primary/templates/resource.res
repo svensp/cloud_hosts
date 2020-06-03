@@ -16,12 +16,18 @@ resource {{ item.name }} {
 
 	{% endfor %}
 
+   syncer {
+      verify-alg sha1;
+   }
 	startup {
 		wfc-timeout  15;
 		degr-wfc-timeout 60;
 	}
 
 	disk {
+	{% if resource_level_fencing is defined %}
+		fencing resource-only;
+	{% endif %}
 		resync-rate 24M;
 		on-io-error             detach;
 		c-plan-ahead 0;
@@ -37,10 +43,8 @@ resource {{ item.name }} {
 	{% endif %}
 	}
 	net {
-	{% if resource_level_fencing is defined %}
-		fencing resource-only;
-	{% endif %}
-		protocol B;
+      allow-two-primaries;
+		protocol C;
 # max-epoch-size          20000;
 		max-buffers             36k;
 		sndbuf-size            1024k ;
