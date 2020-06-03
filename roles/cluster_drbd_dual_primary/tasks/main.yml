@@ -1,0 +1,77 @@
+---
+- name: "Check for required variables"
+  fail: msg="Variable '{{ item }}' is not defined"
+  when: item not in vars
+  with_items:
+    - devices
+  tags: ['cluster_drbd']
+- name: Create mountpoints
+  file:
+    path: "{{ item.mnt }}"
+    state: directory
+  with_items: '{{ devices }}'
+  tags: ['cluster_drbd', 'mounts']
+- name: Set start-failure-is-fatal=false
+  pcs_property:
+    name: start-failure-is-fatal
+    value: false
+    state: present
+  run_once: true
+  tags: ['cluster_drbd', 'pcs', 'pcs-property']
+- name: Create drbd resource on host1
+  pcs_resource:
+    name: "{{ item.name }}"
+    state: present
+    resource_type: "ocf:linbit:drbd"
+    options: "drbd_resource={{ item.drbd_name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta failure-timeout=60 master-max=2 master-node-max=1 clone-max=2 clone-node-max=1 notify=true interleave=true op monitor interval=120s"
+  with_items: '{{ devices }}'
+  run_once: true
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: wait for resources to be created
+  pause:
+    seconds: 1
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Create dlm locker resource on host1
+  pcs_resource:
+    name: "{{ item.name }}"
+    state: present
+    resource_type: "ocf:pacemaker:controld"
+    options: "op monitor interval=120s meta failure-timeout=60 --clone"
+  with_items: '{{ devices }}'
+  run_once: true
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: wait for resources to be created
+  pause:
+    seconds: 1
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Create drbd mount resource
+  pcs_resource:
+    name: "{{ item.name }}_mount"
+    state: present
+    resource_type: "Filesystem"
+    options: "device=/dev/{{ item.dev }} directory={{ item.mnt }} fstype={{ item.format }} op monitor interval=20s meta failure-timeout=10 --clone"
+  run_once: true
+  with_items: '{{ devices }}'
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: wait for resources to be created
+  pause:
+    seconds: 1
+  tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Create drbd mount colocation
+  pcs_constraint_colocation:
+    resource1: "{{ item.name }}_mount"
+    resource2: "{{ item.name }}-master"
+    resource2_role: Master
+    state: present
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-colocation']
+- name: Create drbd mount order
+  pcs_constraint_order:
+    resource1: "{{ item.name }}-master"
+    resource2: "{{ item.name }}_mount-clone"
+    resource1_action: promote
+    state: present
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-order']
