@@ -23,7 +23,7 @@
     name: "{{ item.name }}"
     state: present
     resource_type: "ocf:linbit:drbd"
-    options: "drbd_resource={{ item.drbd_name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta failure-timeout=10 master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true op monitor interval=20s"
+    options: "drbd_resource={{ item.drbd_name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta failure-timeout=10 master-max=1 master-node-max=1 clone-max=2 clone-node-max=1 notify=true op monitor role=Master interval=20 timeout=20 op monitor role=Slave interval=30 timeout=20"
   with_items: '{{ devices }}'
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
