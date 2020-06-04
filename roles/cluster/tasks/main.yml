@@ -74,9 +74,9 @@
     name: pcsd
     enabled: yes
   tags: ['cluster', 'systemd', 'pcsd', 'systemd-enable']
-- name: Create hacluster user for use with pcs
+- name: Create pcs-user user for use with pcs
   user:
-    name: hacluster
+    name: pcs-user
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file)|password_hash('sha512') }}"
     update_password: "{% if force_password_override %}always{% else %}on_create{% endif %}"
   tags: ['cluster', 'user']
@@ -106,7 +106,7 @@
 - name: Authorize cluster nodes
   pcs_auth:
     node_name: "{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname']  }}{% endif %}"
-    username: "hacluster"
+    username: "pcs-user"
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
