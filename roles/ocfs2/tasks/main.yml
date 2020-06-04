@@ -1,0 +1,36 @@
+---
+- name: Install packages
+  apt:
+    update_cache: true
+    name:
+      - drbd-utils
+      - ocfs2-tools
+      - dlm-controld
+    state: present
+  tags: ['drbd', 'apt']
+- name: Copy cluster.conf
+  template:
+    src: cluster.conf
+    dest: /etc/ocfs2/cluster.conf
+    owner: root
+    mode: 0644
+- name: Copy defaults/o2cb
+  template:
+    src: o2cb
+    dest: /etc/default/o2cb
+    owner: root
+    mode: 0644
+  register: _o2cb
+- name: Make sure o2cb is enabled
+  systemd:
+    name: o2cb
+    enabled: true
+- name: Make sure o2cb is started
+  systemd:
+    name: o2cb
+    state: started
+- name: Restart o2cb if default/o2cb was changed
+  systemd:
+    name: o2cb
+    state: restarted
+  when: _o2cb.changed
