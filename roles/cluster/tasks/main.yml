@@ -74,12 +74,26 @@
     name: pcsd
     enabled: yes
   tags: ['cluster', 'systemd', 'pcsd', 'systemd-enable']
-- name: Create pcs-user user for use with pcs
+- name: Check if /var/hacluster.created exists
+  stat:
+    path: /var/hacluster.created
+    get_checksum: false
+    get_mime: false
+  register: _hacluster_created
+- name: Create hascluster user for use with pcs
   user:
-    name: pcs-user
+    name: hacluster
+    create_home: false
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file)|password_hash('sha512') }}"
-    update_password: "{% if force_password_override %}always{% else %}on_create{% endif %}"
+    update_password: "always"
+    system: true
+    shell: /bin/false
   tags: ['cluster', 'user']
+  when: not _hacluster_created.stat.exists
+- name: Create /var/hacluster.created
+  file:
+    path: /var/hacluster.created
+    state: touch
 - name: check if debian default corosync.conf is pressent
   command: "grep -q 'cluster_name: debian' /etc/corosync/corosync.conf"
   register: debianconfig
@@ -106,7 +120,7 @@
 - name: Authorize cluster nodes
   pcs_auth:
     node_name: "{% if use_fqdn %}{{ hostvars[item]['ansible_fqdn'] }}{% else %}{{ hostvars[item]['ansible_hostname']  }}{% endif %}"
-    username: "pcs-user"
+    username: "hacluster"
     password: "{{ lookup('ini', 'password section='+ini_section+' file='+ini_file) }}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
