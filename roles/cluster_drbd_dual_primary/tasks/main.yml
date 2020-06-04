@@ -33,10 +33,10 @@
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create dlm locker resource on host1
   pcs_resource:
-    name: "{{ item.name }}"
+    name: "{{ item.name }}_controld"
     state: present
     resource_type: "ocf:pacemaker:controld"
-    options: "op monitor interval=120s meta failure-timeout=60 --clone"
+    options: "op monitor interval=120s meta failure-timeout=60 --clone interleave=true"
   with_items: '{{ devices }}'
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
@@ -44,12 +44,30 @@
   pause:
     seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Create controld colocation
+  pcs_constraint_colocation:
+    resource1: "{{ item.name }}_controld-clone"
+    resource2: "{{ item.name }}-master"
+    resource2_role: Master
+    state: present
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-colocation']
+- name: Create controld order
+  pcs_constraint_order:
+    resource1: "{{ item.name }}-master"
+    resource2: "{{ item.name }}_controld-clone"
+    resource1_action: promote
+    state: present
+  run_once: true
+  with_items: "{{ devices }}"
+  tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-order']
 - name: Create drbd mount resource
   pcs_resource:
     name: "{{ item.name }}_mount"
     state: present
     resource_type: "Filesystem"
-    options: "device=/dev/{{ item.dev }} directory={{ item.mnt }} fstype={{ item.format }} op monitor interval=20s meta failure-timeout=10 --clone"
+    options: "device=/dev/{{ item.dev }} directory={{ item.mnt }} fstype={{ item.format }} op monitor interval=20s meta failure-timeout=60 --clone interleave=true"
   run_once: true
   with_items: '{{ devices }}'
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
@@ -59,7 +77,7 @@
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
 - name: Create drbd mount colocation
   pcs_constraint_colocation:
-    resource1: "{{ item.name }}_mount"
+    resource1: "{{ item.name }}_controld-clone"
     resource2: "{{ item.name }}-master"
     resource2_role: Master
     state: present
@@ -68,7 +86,7 @@
   tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-colocation']
 - name: Create drbd mount order
   pcs_constraint_order:
-    resource1: "{{ item.name }}-master"
+    resource1: "{{ item.name }}-controld-clone"
     resource2: "{{ item.name }}_mount-clone"
     resource1_action: promote
     state: present

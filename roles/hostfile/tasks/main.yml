@@ -3,7 +3,10 @@
   lineinfile:
     dest: /etc/hosts
     regexp: '.*\s{{ item }}.*'
-    line: "{{ hostvars[item].ansible_default_ipv4.address }} {{item}} {{ hostvars[item].ansible_hostname }}"
+    line: "{{ hostvars[item].ansible_default_ipv4.address }} {{item}}{% if item != hostvars[item].ansible_hostname %} {{ hostvars[item].ansible_hostname }}{% endif %}"
     state: present
-  when: ( hostvars[item].ansible_default_ipv4 is defined ) and ( hostvars[item].ansible_default_ipv4.address is defined )
+  when: >
+    ( hostvars[item].ansible_default_ipv4 is defined )
+    and ( hostvars[item].ansible_default_ipv4.address is defined )
+    and item != inventory_hostname
   with_items: "{{ groups[hostgroup] }}"

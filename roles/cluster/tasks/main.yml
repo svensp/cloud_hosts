@@ -6,11 +6,16 @@
   run_once: true
   tags: ['cluster', 'create']
 
+- name: Remove loopback hostname entry
+  lineinfile:
+    dest: '/etc/hosts'
+    regexp: "^127.0.1.1 {{ ansible_hostname }}.*"
+    state: absent
 - name: Add hosts to /etc/hosts
   lineinfile:
     dest: '/etc/hosts'
     regexp: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} "
-    line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['ansible_hostname'] }} {{ hostvars[item]['ansible_fqdn'] }}"
+    line: "{{ hostvars[item]['ansible_default_ipv4']['address'] }} {{ hostvars[item]['ansible_hostname'] }}{% if hostvars[item]['ansible_hostname'] != hostvars[item]['ansible_fqdn'] %} {{ hostvars[item]['ansible_fqdn'] }}{% endif %}"
   with_items: "{{ play_hosts }}"
   tags: ['cluster', 'create']
 - name: Install Pacemaker + Corosync
@@ -82,10 +87,8 @@
   ignore_errors: yes
   changed_when: no
   tags: ['cluster', 'create']
-- name: Remove default debian corosync.conf
-  file:
-    path: /etc/corosync/corosync.conf
-    state: absent
+- name: Remove default debian cluster
+  command: "pcs cluster destroy"
   when: debianconfig.rc == 0
 - name: Restart pcsd
   systemd:
