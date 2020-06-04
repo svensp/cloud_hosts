@@ -5,6 +5,11 @@
   with_items:
     - devices
   tags: ['cluster_drbd']
+- name: Disable start by systemd
+  systemd:
+    name: drbd
+    enabled: false
+  tags: ['cluster_drbd']
 - name: Create mountpoints
   file:
     path: "{{ item.mnt }}"
@@ -23,7 +28,7 @@
     name: "{{ item.name }}"
     state: present
     resource_type: "ocf:linbit:drbd"
-    options: "drbd_resource={{ item.drbd_name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta failure-timeout=60 master-max=2 master-node-max=1 clone-max=2 clone-node-max=1 notify=true interleave=true op monitor interval=120s"
+    options: "drbd_resource={{ item.drbd_name }} {% if item.conf is defined %}drbdconf={{ item.conf }}{% endif  %} --master meta failure-timeout=60 master-max=2 master-node-max=1 clone-max=2 clone-node-max=1 notify=true interleave=true op monitor role=Master interval=20 timeout=20 op monitor role=Slave interval=30 timeout=20"
   with_items: '{{ devices }}'
   run_once: true
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
@@ -86,9 +91,8 @@
   tags: ['cluster_drbd', 'pcs', 'pcs-constraint', 'pcs-colocation']
 - name: Create drbd mount order
   pcs_constraint_order:
-    resource1: "{{ item.name }}-controld-clone"
+    resource1: "{{ item.name }}_controld-clone"
     resource2: "{{ item.name }}_mount-clone"
-    resource1_action: promote
     state: present
   run_once: true
   with_items: "{{ devices }}"
