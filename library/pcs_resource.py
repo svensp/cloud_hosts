@@ -29,24 +29,29 @@ options:
     required: false
     default: present
     choices: ['present', 'absent']
+    type: str
   name:
     description:
       - "name of cluster resource - cluster resource identifier"
     required: true
+    type: str
   resource_class:
     description:
       - class of cluster resource
-    required: true
+    required: false
     default: 'ocf'
     choices: ['ocf', 'systemd', 'stonith', 'master', 'promotable']
+    type: str
   resource_type:
     description:
       - cluster resource type
     required: false
+    type: str
   options:
     description:
       - "additional options passed to 'pcs' command"
     required: false
+    type: str
   force_resource_update:
     description:
       - "skip checking for cluster changes when updating existing resource configuration
@@ -60,17 +65,20 @@ options:
       - "Apply changes to specified file containing cluster CIB instead of running cluster."
       - "This module requires the file to already contain cluster configuration."
     required: false
+    type: str
   child_name:
     description:
       - "define custom name of child resource when creating multistate resource ('master' or 'promotable' resource_class)."
       - "If not specified then the child resource name will have for of name+'-child'."
     required: false
+    type: str
   ignored_meta_attributes:
     description:
       - "list of meta attributes that will be ignored when comparing existing resources"
     required: false
     default: []
     type: list
+    elements: str
 notes:
    - tested on CentOS 6.8, 7.3
    - module can create and delete clones, groups and master resources indirectly -
@@ -364,11 +372,15 @@ def run_module():
                                 cmd = 'pcs %(cib_file_param)s resource delete %(child_name)s' % module.params
                                 rc2, out2, err2 = module.run_command(cmd)
                                 if rc2 == 0:
-                                    module.fail_json(msg="Failed to push updated configuration for multistate resource to cluster using command '" + push_cmd + "'. Creation of multistate resource was rolled back. You can retry this task with 'force_resource_update=true' to see if that helps.", output=out, error=err)
+                                    module.fail_json(msg="Failed to push updated configuration for multistate resource to cluster using command '" + push_cmd +
+                                                     "'. Creation of multistate resource was rolled back. You can retry this task with " +
+                                                     "'force_resource_update=true' to see if that helps.", output=out, error=err)
                                 else:
-                                    module.fail_json(msg="Failed to delete resource after unsuccessful multistate resource configuration update using command '" + cmd + "'", output=out2, error=err2)
+                                    module.fail_json(msg="Failed to delete resource after unsuccessful multistate resource configuration update using command '"
+                                                     + cmd + "'", output=out2, error=err2)
                         else:
-                            module.fail_json(msg="Failed to detect multistate resource after creating it with cmd '" + cmd + "'!", output=out, error=err, previous_cib=current_cib)
+                            module.fail_json(msg="Failed to detect multistate resource after creating it with cmd '" + cmd + "'!",
+                                             output=out, error=err, previous_cib=current_cib)
                 module.exit_json(changed=True)
             else:
                 module.fail_json(msg="Failed to create resource using command '" + cmd + "'", output=out, error=err)
@@ -406,7 +418,8 @@ def run_module():
                     except Exception as e:
                         module.fail_json(msg="Error encountered writing intermediate multistate result to clean_cib_path - %s" % (e))
                 else:
-                    module.fail_json(msg="Failed to detect intermediate multistate resource after creating it with cmd '" + cmd + "'!", output=out, error=err, previous_cib=current_cib)
+                    module.fail_json(msg="Failed to detect intermediate multistate resource after creating it with cmd '" + cmd + "'!",
+                                     output=out, error=err, previous_cib=current_cib)
 
             # we have a comparable resource created in clean cluster, so lets select it and compare it
             clean_cib = ET.parse(clean_cib_path)

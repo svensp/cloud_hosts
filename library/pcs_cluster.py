@@ -28,18 +28,22 @@ options:
     required: false
     default: present
     choices: ['present', 'absent']
+    type: str
   node_list:
     description:
       - space separated list of nodes in cluster
     required: false
+    type: str
   cluster_name:
     description:
       - pacemaker cluster name
-    required: true
+    required: false
+    type: str
   token:
     description:
       - sets time in milliseconds until a token loss is declared after not receiving a token
     required: false
+    type: int
   transport:
     description:
       - "'default' - use default transport protocol ('udp' in CentOS/RHEL 6, 'udpu' in CentOS/RHEL 7), 'knet' in Fedora 29"
@@ -49,6 +53,12 @@ options:
     required: false
     default: default
     choices: ['default', 'udp', 'udpu', 'knet']
+    type: str
+  transport_options:
+    description:
+      - "additional options for transports (available only with pcs-0.10), this option can be used only when `transport` option is specified (non-default)"
+    required: false
+    type: str
   allowed_node_changes:
     description:
       - "'none' - node list must match existing cluster if cluster should be present"
@@ -57,6 +67,7 @@ options:
     default: none
     required: false
     choices: ['none', 'add', 'remove']
+    type: str
 notes:
    - Tested on CentOS 6.8, 6.9, 7.3, 7.4, 7.5
    - Tested on Red Hat Enterprise Linux 7.3, 7.4, 7.6
@@ -89,6 +100,16 @@ EXAMPLES = '''
       node1-eth0.example.com,node1-eth1.example.com
       node2-eth0.example.com,node2-eth1.example.com
     state: 'present'
+  run_once: True
+
+- name: Create cluster with redundant corosync links and transport and link options
+  pcs_cluster:
+    cluster_name: 'test-cluster'
+    node_list: >
+      node1-eth0.example.com,node1-eth1.example.com
+      node2-eth0.example.com,node2-eth1.example.com
+    transport: 'knet'
+    transport_options: link_mode=passive link linknumber=0 transport=udp link_priority=1 link linknumber=1 transport=udp link_priority=2'
   run_once: True
 
 - name: Add new nodes to existing cluster
@@ -127,6 +148,7 @@ def run_module():
             cluster_name=dict(required=False),
             token=dict(required=False, type='int'),
             transport=dict(required=False, default="default", choices=['default', 'udp', 'udpu', 'knet']),
+            transport_options=dict(required=False, default="", type='str'),
             allowed_node_changes=dict(required=False, default="none", choices=['none', 'add', 'remove']),
         ),
         supports_check_mode=True
@@ -184,13 +206,18 @@ def run_module():
         result['changed'] = True
         # create cluster from node list that was provided to module
         if pcs_version == '0.9':
+            # if no transport_options are specified used empty string
+            if (module.params['transport_options']):
+                module.fail_json(msg="using transport_options is not supported with pcs 0.9")
             module.params['token_param'] = '' if (not module.params['token']) else '--token %(token)s' % module.params
             module.params['transport_param'] = '' if (module.params['transport'] == 'default') else '--transport %(transport)s' % module.params
             cmd = 'pcs cluster setup --name %(cluster_name)s %(node_list)s %(token_param)s %(transport_param)s' % module.params
         elif pcs_version == '0.10':
+            if ((module.params['transport_options'] != '') and (module.params['transport'] == 'default')):
+                module.fail_json(msg="using option transport_option must not be used without option transport")
             module.params['token_param'] = '' if (not module.params['token']) else 'token %(token)s' % module.params
             module.params['transport_param'] = '' if (module.params['transport'] == 'default') else 'transport %(transport)s' % module.params
-            cmd = 'pcs cluster setup %(cluster_name)s %(node_list)s %(token_param)s %(transport_param)s' % module.params
+            cmd = 'pcs cluster setup %(cluster_name)s %(node_list)s %(token_param)s %(transport_param)s %(transport_options)s' % module.params
         else:
             module.fail_json(msg="unsupported version of pcs (" + pcs_version + "). Only versions 0.9 and 0.10 are supported.")
         if not module.check_mode:

@@ -46,13 +46,26 @@
   tags: ['drbd', 'initialize']
 - name: Initialize drbd devices
   shell: "yes yes | drbdadm create-md {{ item.item.name }}"
-  when: "item.stdout.find('Unconfigured') != -1"
+  when: "item.stdout.find('Diskless/') != -1"
   with_items: "{{ uninitialized.results }}"
   tags: ['drbd', 'initialize', 'create-md']
-- name: Start drbd devices
-  command: "drbdadm up {{ item.name }}"
+  register: _create_md
+- name: Stop drbd devices if they were initialized
+  command: "drbdadm down {{ item.item.item.name }}"
+  with_items: "{{ _create_md.results }}"
+  when: item.changed
+  tags: ['drbd', 'initialize', 'up']
+- name: Check if drbd needs starting
+  stat:
+    path: "{{ item.drbd_device }}"
+    get_checksum: false
+    get_mime: false
+  register: _devices_exist
   with_items: "{{ devices }}"
-  ignore_errors: true
+- name: Start drbd devices
+  command: "drbdadm up {{ item.item.name }}"
+  with_items: "{{ _devices_exist.results }}"
+  when: not item.stat.exists
   tags: ['drbd', 'initialize', 'up']
 - name: check if initial sync is necessary
   shell: "drbdadm dstate '{{ item.name }}'"
@@ -72,7 +85,7 @@
   tags: ['drbd', 'initialize', 'filesystem']
   changed_when: no
 - name: Check which host is primary
-  shell: "drbdadm dstate '{{ item.name }}'"
+  shell: "drbdadm role '{{ item.name }}'"
   ignore_errors: yes
   register: primary
   changed_when: no
@@ -84,4 +97,5 @@
     dev: "{{ item.item.drbd_device }}"
   when: "item.stdout.find('Primary/') != -1"
   with_items: "{{ primary.results }}"
+  run_once: true
   tags: ['drbd', 'initialize', 'filesystem']

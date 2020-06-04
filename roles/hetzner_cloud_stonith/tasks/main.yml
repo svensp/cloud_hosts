@@ -21,21 +21,22 @@
     dest: /usr/lib/stonith/plugins/external/
     mode: 0755
   tags: ['cluster', 'stonith', 'hetzner']
-- name: Create STONITH devices
-  pcs_resource:
-    name: "STONITH"
-    state: present
-    resource_type: "stonith:external/hetzner_cloud"
-    options: "api_token={{ api_token }} op monitor timeout=60s on-fail={{ on_fail }} interval=30s meta failure-timeout=60 --clone"
-  run_once: true
-  tags: ['cluster', 'stonith', 'hetzner']
-- name: Remove non-clone STONITH devices
+- name: Create STONITH devies
   pcs_resource:
     name: "STONITH_{{ ansible_hostname }}"
-    state: absent
+    state: present
+    resource_type: "stonith:external/hetzner_cloud"
+    options: "api_token={{ api_token }} op monitor timeout=60s on-fail={{ on_fail }} interval=30s meta failure-timeout=30"
   tags: ['cluster', 'stonith', 'hetzner']
   throttle: 1
 - name: wait for resources to be created
   pause:
     seconds: 1
   tags: ['cluster_drbd', 'pcs', 'pcs-resource']
+- name: Force stonith location not on own host
+  pcs_constraint_location:
+    state: present
+    resource: "STONITH_{{ ansible_hostname }}"
+    node_name: "{{ ansible_hostname  }}"
+    score: "-INFINITY"
+  tags: ['cluster', 'stonith', 'hetzner']
