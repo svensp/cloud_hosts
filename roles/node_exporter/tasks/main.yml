@@ -26,7 +26,6 @@
     dest: /etc/default/node_exporter
     mode: 0644
     owner: root
-  tags: ['node-exporter']
   notify:
     - node-exporter-updated
   tags: ['node-exporter']
