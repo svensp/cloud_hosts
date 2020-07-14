@@ -8,7 +8,7 @@
   docker_network:
     name: rancher
     state: present
-  tags: ['rancher']
+  tags: ['rancher', 'traefik']
 - name: Create container
   docker_container:
     name: rancher-server
@@ -39,20 +39,20 @@
   file:
     path: /etc/traefik
     state: directory
-  tags: ['rancher']
+  tags: ['rancher', 'traefik']
 - name: Copy traefik.toml
   template:
     src: traefik.toml
     dest: /etc/traefik/traefik.toml
-  tags: ['rancher']
+  tags: ['rancher', 'traefik', 'traefik-config']
 - name: Create treafik pcs_resource to start the container
   pcs_resource:
     name: rancher-traefik
     state: present
     resource_type: "ocf:heartbeat:docker"
-    options: "name=rancher-traefik image=traefik:1.7.6-alpine allow_pull=true run_opts='-v /etc/traefik:/etc/traefik {% for key in traefik_envs %}-e {{ key }}={{ traefik_envs[key] }} {% endfor %}-p {{ rancher_ip }}:{{ http_port }}:{{ http_port }} {% for item in extra_ports %}-p {{ rancher_ip }}:{{ item.port }}:{{ item.port }} {% endfor %}-p {{ rancher_ip }}:{{ https_port }}:{{ https_port }} --network=rancher --restart=no' meta resource-stickyness=100 failure-timeout=10"
+    options: "name=rancher-traefik image=traefik:1.7.21-alpine allow_pull=true run_opts='-v /etc/traefik:/etc/traefik {% for key in traefik_envs %}-e {{ key }}={{ traefik_envs[key] }} {% endfor %}-p {{ rancher_ip }}:{{ http_port }}:{{ http_port }} {% for item in extra_ports %}-p {{ rancher_ip }}:{{ item.port }}:{{ item.port }} {% endfor %}-p {{ rancher_ip }}:{{ https_port }}:{{ https_port }} --network=rancher --restart=no' meta resource-stickyness=100 failure-timeout=10"
   run_once: true
-  tags: ['rancher', 'pcs_resource']
+  tags: ['rancher', 'pcs_resource', 'traefik']
 - name: Create treafik cluster constraint colocation
   pcs_constraint_colocation:
     resource1: "rancher-traefik"
