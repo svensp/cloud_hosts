@@ -1,0 +1,27 @@
+---
+- name: remove ssmtp
+  apt:
+    name: ssmtp
+    state: absent
+  tags: ['email']
+- name: install msmtp
+  apt:
+    name:
+      - msmtp-mta
+      - msmtp
+    state: present
+  tags: ['email']
+- name: create msmtprc
+  template:
+    src: msmtprc
+    dest: /etc/msmtprc
+    owner: root
+    mode: 0600
+  tags: ['email']
+- name: create aliases
+  template:
+    src: aliases
+    dest: /etc/aliases
+    owner: root
+    mode: 0600
+  tags: ['email']

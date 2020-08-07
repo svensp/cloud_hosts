@@ -1,0 +1,2 @@
+root: {{ root_mail }}
+default: {{ root_mail }}

@@ -1,0 +1,4 @@
+smtp_port: 587
+smtp_tls: "on"
+smtp_auth: "on"
+smtp_trust_file: /etc/ssl/certs/ca-certificates.crt
